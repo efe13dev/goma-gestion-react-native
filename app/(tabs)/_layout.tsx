@@ -37,9 +37,9 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
-				name="explore"
+				name="formulas"
 				options={{
-					title: "Formulas",
+					title: "Fórmulas",
 					tabBarIcon: ({ color }) => (
 						<IconSymbol size={28} name="testtube.2" color={color} />
 					),

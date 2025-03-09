@@ -2,20 +2,34 @@ import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { coloresGoma, type ColorGoma } from "../data/colors";
-import { useState } from "react";
+import {
+	coloresGoma,
+	type ColorGoma,
+	guardarInventario,
+	cargarInventario,
+} from "@/data/colors";
+import { useState, useEffect } from "react";
 
 export default function HomeScreen() {
 	const [inventario, setInventario] = useState<ColorGoma[]>(coloresGoma);
+	const [selectedId, setSelectedId] = useState<string | null>(null);
 
-	const ajustarCantidad = (id: string, incremento: number) => {
-		setInventario(
-			inventario.map((color) =>
-				color.id === id
-					? { ...color, cantidad: Math.max(0, color.cantidad + incremento) }
-					: color,
-			),
+	useEffect(() => {
+		const cargarDatos = async () => {
+			const datos = await cargarInventario();
+			setInventario(datos);
+		};
+		cargarDatos();
+	}, []);
+
+	const ajustarCantidad = async (id: string, incremento: number) => {
+		const nuevoInventario = inventario.map((color) =>
+			color.id === id
+				? { ...color, cantidad: Math.max(0, color.cantidad + incremento) }
+				: color,
 		);
+		setInventario(nuevoInventario);
+		await guardarInventario(nuevoInventario);
 	};
 
 	return (
@@ -37,26 +51,43 @@ export default function HomeScreen() {
 					Inventario de Colores
 				</ThemedText>
 				{inventario.map((color) => (
-					<ThemedView key={color.id} style={styles.colorRow}>
-						<ThemedText style={styles.colorName}>{color.nombre}</ThemedText>
-						<View style={styles.cantidadContainer}>
-							<TouchableOpacity
-								style={styles.button}
-								onPress={() => ajustarCantidad(color.id, -1)}
-							>
-								<ThemedText style={styles.buttonText}>-</ThemedText>
-							</TouchableOpacity>
+					<TouchableOpacity
+						key={color.id}
+						onPress={() =>
+							setSelectedId(selectedId === color.id ? null : color.id)
+						}
+					>
+						<ThemedView style={styles.colorRow}>
+							<ThemedText style={styles.colorName}>{color.nombre}</ThemedText>
+							<View style={styles.cantidadContainer}>
+								{selectedId === color.id ? (
+									<>
+										<TouchableOpacity
+											style={styles.button}
+											onPress={() => ajustarCantidad(color.id, -1)}
+										>
+											<ThemedText style={styles.buttonText}>-</ThemedText>
+										</TouchableOpacity>
 
-							<ThemedText style={styles.cantidad}>{color.cantidad}</ThemedText>
+										<ThemedText style={styles.cantidad}>
+											{color.cantidad}
+										</ThemedText>
 
-							<TouchableOpacity
-								style={styles.button}
-								onPress={() => ajustarCantidad(color.id, 1)}
-							>
-								<ThemedText style={styles.buttonText}>+</ThemedText>
-							</TouchableOpacity>
-						</View>
-					</ThemedView>
+										<TouchableOpacity
+											style={styles.button}
+											onPress={() => ajustarCantidad(color.id, 1)}
+										>
+											<ThemedText style={styles.buttonText}>+</ThemedText>
+										</TouchableOpacity>
+									</>
+								) : (
+									<ThemedText style={styles.cantidad}>
+										{color.cantidad}
+									</ThemedText>
+								)}
+							</View>
+						</ThemedView>
+					</TouchableOpacity>
 				))}
 			</ThemedView>
 		</ParallaxScrollView>
@@ -73,7 +104,7 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 	},
 	colorContainer: {
-		padding: 20,
+		padding: 12,
 		backgroundColor: "rgba(161, 206, 220, 0.1)",
 		borderRadius: 12,
 		marginVertical: 0,
@@ -87,10 +118,11 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		paddingVertical: 16,
-		paddingHorizontal: 16,
+		paddingVertical: 20,
+		paddingHorizontal: 12,
 		borderBottomWidth: 1,
 		borderBottomColor: "rgba(161, 206, 220, 0.2)",
+		marginVertical: 4,
 	},
 	colorName: {
 		fontSize: 20,
@@ -98,7 +130,7 @@ const styles = StyleSheet.create({
 	cantidadContainer: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 16,
+		gap: 12,
 	},
 	button: {
 		backgroundColor: "rgba(161, 206, 220, 0.2)",
@@ -109,11 +141,11 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	buttonText: {
-		fontSize: 26,
+		fontSize: 22,
 		fontWeight: "bold",
 	},
 	cantidad: {
-		fontSize: 20,
+		fontSize: 22,
 		fontWeight: "bold",
 		minWidth: 36,
 		textAlign: "center",
