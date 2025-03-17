@@ -19,8 +19,14 @@ import {
   TouchableOpacity,
   View,
   Animated,
+  Modal,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function FormulaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,6 +46,10 @@ export default function FormulaScreen() {
 
   // Referencias a los componentes Swipeable para cerrarlos cuando sea necesario
   const swipeableRefs = useRef<Array<Swipeable | null>>([]);
+  
+  // Obtener el color del texto según el tema
+  const textColor = useThemeColor({}, 'text');
+  const backgroundColor = useThemeColor({}, 'background');
 
   // Actualizar los ingredientes cuando cambia la fórmula
   useEffect(() => {
@@ -291,109 +301,6 @@ export default function FormulaScreen() {
             </Swipeable>
           ))}
 
-          {/* Formulario para añadir o editar ingredientes */}
-          {mostrarFormulario && (
-            <ThemedView style={styles.formularioContainer}>
-              <ThemedView style={styles.inputRow}>
-                <ThemedText style={styles.label}>Nombre:</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={ingredienteNombre}
-                  onChangeText={setIngredienteNombre}
-                  placeholder="Nombre del ingrediente"
-                  placeholderTextColor="rgba(150, 150, 150, 0.8)"
-                />
-              </ThemedView>
-
-              <ThemedView style={styles.inputRow}>
-                <ThemedText style={styles.label}>Cantidad:</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  value={ingredienteCantidad}
-                  onChangeText={setIngredienteCantidad}
-                  placeholder="Cantidad"
-                  keyboardType="numeric"
-                  placeholderTextColor="rgba(150, 150, 150, 0.8)"
-                />
-              </ThemedView>
-
-              <ThemedView style={styles.inputRow}>
-                <ThemedText style={styles.label}>Unidad:</ThemedText>
-                <ThemedView style={styles.unidadSelectorContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.unidadButton,
-                      ingredienteUnidad === 'gr' && styles.unidadButtonSelected,
-                    ]}
-                    onPress={() => setIngredienteUnidad('gr')}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.unidadButtonText,
-                        ingredienteUnidad === 'gr' &&
-                          styles.unidadButtonTextSelected,
-                      ]}
-                    >
-                      gr
-                    </ThemedText>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.unidadButton,
-                      ingredienteUnidad === 'kg' && styles.unidadButtonSelected,
-                    ]}
-                    onPress={() => setIngredienteUnidad('kg')}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.unidadButtonText,
-                        ingredienteUnidad === 'kg' &&
-                          styles.unidadButtonTextSelected,
-                      ]}
-                    >
-                      kg
-                    </ThemedText>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.unidadButton,
-                      ingredienteUnidad === 'L' && styles.unidadButtonSelected,
-                    ]}
-                    onPress={() => setIngredienteUnidad('L')}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.unidadButtonText,
-                        ingredienteUnidad === 'L' &&
-                          styles.unidadButtonTextSelected,
-                      ]}
-                    >
-                      L
-                    </ThemedText>
-                  </TouchableOpacity>
-                </ThemedView>
-              </ThemedView>
-
-              <ThemedView style={styles.botonesContainer}>
-                <TouchableOpacity
-                  style={[styles.boton, styles.botonCancelar]}
-                  onPress={cancelarFormulario}
-                >
-                  <ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.boton, styles.botonGuardar]}
-                  onPress={guardarIngrediente}
-                >
-                  <ThemedText style={styles.botonTexto}>Guardar</ThemedText>
-                </TouchableOpacity>
-              </ThemedView>
-            </ThemedView>
-          )}
-
           {/* Botón para mostrar el formulario de añadir */}
           {!mostrarFormulario && (
             <TouchableOpacity
@@ -407,6 +314,131 @@ export default function FormulaScreen() {
             </TouchableOpacity>
           )}
         </ThemedView>
+
+        {/* Modal para añadir o editar ingredientes */}
+        <Modal
+          visible={mostrarFormulario}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={cancelarFormulario}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+            >
+              <View style={styles.modalOverlay}>
+                <ThemedView style={styles.modalContainer}>
+                  <ThemedText type="subtitle" style={styles.subtitleForm}>
+                    {editandoIndex !== null ? 'Editar Ingrediente' : 'Añadir Ingrediente'}
+                  </ThemedText>
+
+                  <ThemedView style={styles.inputRow}>
+                    <ThemedText style={styles.label}>Nombre:</ThemedText>
+                    <TextInput
+                      style={[styles.input, { color: textColor }]}
+                      value={ingredienteNombre}
+                      onChangeText={setIngredienteNombre}
+                      placeholder="Nombre del ingrediente"
+                      placeholderTextColor="rgba(150, 150, 150, 0.8)"
+                      editable={true}
+                      autoCapitalize="sentences"
+                    />
+                  </ThemedView>
+
+                  <ThemedView style={styles.inputRow}>
+                    <ThemedText style={styles.label}>Cantidad:</ThemedText>
+                    <TextInput
+                      style={[styles.input, { color: textColor }]}
+                      value={ingredienteCantidad}
+                      onChangeText={setIngredienteCantidad}
+                      placeholder="Cantidad"
+                      keyboardType="numeric"
+                      placeholderTextColor="rgba(150, 150, 150, 0.8)"
+                      editable={true}
+                    />
+                  </ThemedView>
+
+                  <ThemedView style={styles.inputRow}>
+                    <ThemedText style={styles.label}>Unidad:</ThemedText>
+                    <ThemedView style={styles.unidadSelectorContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.unidadButton,
+                          ingredienteUnidad === 'gr' && styles.unidadButtonSelected,
+                        ]}
+                        onPress={() => setIngredienteUnidad('gr')}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.unidadButtonText,
+                            ingredienteUnidad === 'gr' &&
+                              styles.unidadButtonTextSelected,
+                          ]}
+                        >
+                          gr
+                        </ThemedText>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.unidadButton,
+                          ingredienteUnidad === 'kg' && styles.unidadButtonSelected,
+                        ]}
+                        onPress={() => setIngredienteUnidad('kg')}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.unidadButtonText,
+                            ingredienteUnidad === 'kg' &&
+                              styles.unidadButtonTextSelected,
+                          ]}
+                        >
+                          kg
+                        </ThemedText>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.unidadButton,
+                          ingredienteUnidad === 'L' && styles.unidadButtonSelected,
+                        ]}
+                        onPress={() => setIngredienteUnidad('L')}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.unidadButtonText,
+                            ingredienteUnidad === 'L' &&
+                              styles.unidadButtonTextSelected,
+                          ]}
+                        >
+                          L
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </ThemedView>
+                  </ThemedView>
+
+                  <ThemedView style={styles.botonesContainer}>
+                    <TouchableOpacity
+                      style={[styles.boton, styles.botonCancelar]}
+                      onPress={cancelarFormulario}
+                    >
+                      <ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.boton, styles.botonGuardar]}
+                      onPress={guardarIngrediente}
+                    >
+                      <ThemedText style={styles.botonTexto}>Guardar</ThemedText>
+                    </TouchableOpacity>
+                  </ThemedView>
+                </ThemedView>
+              </View>
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
+        </Modal>
       </ParallaxScrollView>
     </GestureHandlerRootView>
   );
@@ -585,5 +617,25 @@ const styles = StyleSheet.create({
   },
   swipeableContainer: {
     marginBottom: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    width: '100%',
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

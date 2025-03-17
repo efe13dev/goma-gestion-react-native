@@ -65,6 +65,14 @@ export default function RootLayout() {
               headerBackVisible: true,
             }}
           />
+          <Stack.Screen
+            name="nueva-formula"
+            options={{
+              title: 'Volver',
+              headerBackTitle: 'Volver',
+              headerBackVisible: true,
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
