@@ -1,36 +1,71 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getStock, updateColor, addColor, deleteColor } from "@/api/stockApi";
 
-export interface ColorGoma {
+export interface RubberColor {
 	id: string;
-	nombre: string;
-	cantidad: number;
+	name: string;
+	quantity: number;
 }
 
-export const coloresGoma: ColorGoma[] = [
-	{ id: "negro", nombre: "Negro", cantidad: 0 },
-	{ id: "negro-pega", nombre: "Negro Pega", cantidad: 0 },
-	{ id: "marino", nombre: "Marino", cantidad: 0 },
-	{ id: "crudo", nombre: "Crudo", cantidad: 0 },
-	{ id: "blanco", nombre: "Blanco", cantidad: 0 },
-	{ id: "beige", nombre: "Beige", cantidad: 0 },
-];
-
-export const guardarInventario = async (inventario: ColorGoma[]) => {
+// Save inventory (update in the API)
+export const saveInventory = async (inventory: RubberColor[]) => {
 	try {
-		await AsyncStorage.setItem("inventario", JSON.stringify(inventario));
+		// Update in the API
+		for (const color of inventory) {
+			try {
+				await updateColor(color);
+			} catch (error) {
+				console.error(`Error updating ${color.name} in the API:`, error);
+				// Continue with the next colors even if there's an error
+			}
+		}
 	} catch (error) {
-		console.error("Error al guardar el inventario:", error);
+		console.error("Error saving inventory:", error);
+		throw error;
 	}
 };
 
-export const cargarInventario = async (): Promise<ColorGoma[]> => {
+// Load inventory from the API
+export const loadInventory = async (): Promise<RubberColor[]> => {
 	try {
-		const inventarioGuardado = await AsyncStorage.getItem("inventario");
-		if (inventarioGuardado) {
-			return JSON.parse(inventarioGuardado);
-		}
+		// Load from the API
+		const stockAPI = await getStock();
+		return stockAPI;
 	} catch (error) {
-		console.error("Error al cargar el inventario:", error);
+		console.error("Error loading inventory from the API:", error);
+		throw error;
 	}
-	return coloresGoma;
+};
+
+// Add a new color to the inventory
+export const addNewColor = async (
+	name: string,
+	quantity: number,
+): Promise<void> => {
+	try {
+		// Ensure the quantity is a valid number
+		const numericQuantity = Number.isNaN(quantity)
+			? 0
+			: Math.max(0, Math.floor(quantity));
+
+		const newColor: RubberColor = {
+			id: name.toLowerCase().replace(/\s+/g, "-"),
+			name,
+			quantity: numericQuantity,
+		};
+
+		await addColor(newColor);
+	} catch (error) {
+		console.error(`Error adding color ${name}:`, error);
+		throw error;
+	}
+};
+
+// Delete a color from the inventory
+export const deleteColorFromInventory = async (name: string): Promise<void> => {
+	try {
+		await deleteColor(name);
+	} catch (error) {
+		console.error(`Error deleting color ${name}:`, error);
+		throw error;
+	}
 };
