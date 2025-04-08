@@ -28,6 +28,7 @@ import {
 } from 'react-native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { useColorScheme } from 'react-native';
 
 export default function FormulaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,6 +53,8 @@ export default function FormulaScreen() {
   // Obtener el color del texto según el tema
   const textColor = useThemeColor({}, 'text');
   const backgroundColor = useThemeColor({}, 'background');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   // Cargar la fórmula desde la API
   useEffect(() => {
@@ -384,123 +387,151 @@ export default function FormulaScreen() {
           transparent={true}
           animationType="fade"
           onRequestClose={cancelarFormulario}
+          statusBarTranslucent={true}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ThemedView style={styles.modalOverlay}>
             <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={{ flex: 1 }}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.keyboardAvoidingContainer}
               keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
             >
-              <View style={styles.modalOverlay}>
-                <ThemedView style={[styles.modalContainer, { backgroundColor }]}>
-                  <ThemedText type="subtitle" style={styles.subtitleForm}>
-                    {editandoIndex !== null ? 'Editar Ingrediente' : 'Añadir Ingrediente'}
-                  </ThemedText>
-
-                  <ThemedView style={styles.inputRow}>
-                    <ThemedText style={styles.label}>Nombre:</ThemedText>
-                    <TextInput
-                      style={[styles.input, { color: textColor }]}
-                      value={ingredienteNombre}
-                      onChangeText={setIngredienteNombre}
-                      placeholder="Nombre del ingrediente"
-                      placeholderTextColor="rgba(150, 150, 150, 0.8)"
-                      editable={true}
-                      autoCapitalize="sentences"
-                    />
-                  </ThemedView>
-
-                  <ThemedView style={styles.inputRow}>
-                    <ThemedText style={styles.label}>Cantidad:</ThemedText>
-                    <TextInput
-                      style={[styles.input, { color: textColor }]}
-                      value={ingredienteCantidad}
-                      onChangeText={setIngredienteCantidad}
-                      placeholder="Cantidad"
-                      keyboardType="numeric"
-                      placeholderTextColor="rgba(150, 150, 150, 0.8)"
-                      editable={true}
-                    />
-                  </ThemedView>
-
-                  <ThemedView style={styles.inputRow}>
-                    <ThemedText style={styles.label}>Unidad:</ThemedText>
-                    <ThemedView style={styles.unidadSelectorContainer}>
-                      <TouchableOpacity
-                        style={[
-                          styles.unidadButton,
-                          ingredienteUnidad === 'gr' && styles.unidadButtonSelected,
-                        ]}
-                        onPress={() => setIngredienteUnidad('gr')}
+              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <ThemedView style={styles.modalContentWrapper}>
+                  <ThemedView style={styles.modalContainer}>
+                    <ThemedView style={styles.modalHeader}>
+                      <ThemedText type="subtitle" style={styles.subtitleForm}>
+                        {editandoIndex !== null ? 'Editar Ingrediente' : 'Añadir Ingrediente'}
+                      </ThemedText>
+                      <TouchableOpacity 
+                        onPress={cancelarFormulario}
+                        style={styles.closeButton}
                       >
-                        <ThemedText
+                        <Ionicons name="close" size={24} color={textColor} />
+                      </TouchableOpacity>
+                    </ThemedView>
+
+                    <ThemedView style={styles.inputRow}>
+                      <ThemedText style={styles.label}>Nombre:</ThemedText>
+                      <TextInput
+                        style={[
+                          styles.input, 
+                          { 
+                            color: textColor,
+                            backgroundColor: isDark ? 'rgba(50, 50, 50, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                            borderColor: isDark ? 'rgba(161, 206, 220, 0.7)' : 'rgba(161, 206, 220, 0.5)',
+                          }
+                        ]}
+                        value={ingredienteNombre}
+                        onChangeText={setIngredienteNombre}
+                        placeholder="Nombre del ingrediente"
+                        placeholderTextColor={isDark ? 'rgba(200, 200, 200, 0.8)' : 'rgba(150, 150, 150, 0.8)'}
+                        editable={true}
+                        autoCapitalize="sentences"
+                      />
+                    </ThemedView>
+
+                    <ThemedView style={styles.inputRow}>
+                      <ThemedText style={styles.label}>Cantidad:</ThemedText>
+                      <TextInput
+                        style={[
+                          styles.input, 
+                          { 
+                            color: textColor,
+                            backgroundColor: isDark ? 'rgba(50, 50, 50, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                            borderColor: isDark ? 'rgba(161, 206, 220, 0.7)' : 'rgba(161, 206, 220, 0.5)',
+                          }
+                        ]}
+                        value={ingredienteCantidad}
+                        onChangeText={setIngredienteCantidad}
+                        placeholder="Cantidad"
+                        keyboardType="numeric"
+                        placeholderTextColor={isDark ? 'rgba(200, 200, 200, 0.8)' : 'rgba(150, 150, 150, 0.8)'}
+                        editable={true}
+                      />
+                    </ThemedView>
+
+                    <ThemedView style={styles.inputRow}>
+                      <ThemedText style={styles.label}>Unidad:</ThemedText>
+                      <ThemedView style={styles.unidadSelectorContainer}>
+                        <TouchableOpacity
                           style={[
-                            styles.unidadButtonText,
-                            ingredienteUnidad === 'gr' &&
-                              styles.unidadButtonTextSelected,
+                            styles.unidadButton,
+                            ingredienteUnidad === 'gr' && styles.unidadButtonSelected,
+                            { backgroundColor: isDark ? 'rgba(50, 50, 50, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
                           ]}
+                          onPress={() => setIngredienteUnidad('gr')}
                         >
-                          gr
-                        </ThemedText>
+                          <ThemedText
+                            style={[
+                              styles.unidadButtonText,
+                              ingredienteUnidad === 'gr' &&
+                                styles.unidadButtonTextSelected,
+                            ]}
+                          >
+                            gr
+                          </ThemedText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.unidadButton,
+                            ingredienteUnidad === 'kg' && styles.unidadButtonSelected,
+                            { backgroundColor: isDark ? 'rgba(50, 50, 50, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
+                          ]}
+                          onPress={() => setIngredienteUnidad('kg')}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.unidadButtonText,
+                              ingredienteUnidad === 'kg' &&
+                                styles.unidadButtonTextSelected,
+                            ]}
+                          >
+                            kg
+                          </ThemedText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.unidadButton,
+                            ingredienteUnidad === 'L' && styles.unidadButtonSelected,
+                            { backgroundColor: isDark ? 'rgba(50, 50, 50, 0.8)' : 'rgba(255, 255, 255, 0.8)' }
+                          ]}
+                          onPress={() => setIngredienteUnidad('L')}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.unidadButtonText,
+                              ingredienteUnidad === 'L' &&
+                                styles.unidadButtonTextSelected,
+                            ]}
+                          >
+                            L
+                          </ThemedText>
+                        </TouchableOpacity>
+                      </ThemedView>
+                    </ThemedView>
+
+                    <ThemedView style={styles.botonesContainer}>
+                      <TouchableOpacity
+                        style={[styles.boton, styles.botonCancelar]}
+                        onPress={cancelarFormulario}
+                      >
+                        <ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={[
-                          styles.unidadButton,
-                          ingredienteUnidad === 'kg' && styles.unidadButtonSelected,
-                        ]}
-                        onPress={() => setIngredienteUnidad('kg')}
+                        style={[styles.boton, styles.botonGuardar]}
+                        onPress={guardarIngrediente}
                       >
-                        <ThemedText
-                          style={[
-                            styles.unidadButtonText,
-                            ingredienteUnidad === 'kg' &&
-                              styles.unidadButtonTextSelected,
-                          ]}
-                        >
-                          kg
-                        </ThemedText>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.unidadButton,
-                          ingredienteUnidad === 'L' && styles.unidadButtonSelected,
-                        ]}
-                        onPress={() => setIngredienteUnidad('L')}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.unidadButtonText,
-                            ingredienteUnidad === 'L' &&
-                              styles.unidadButtonTextSelected,
-                          ]}
-                        >
-                          L
-                        </ThemedText>
+                        <ThemedText style={styles.botonTexto}>Guardar</ThemedText>
                       </TouchableOpacity>
                     </ThemedView>
                   </ThemedView>
-
-                  <ThemedView style={styles.botonesContainer}>
-                    <TouchableOpacity
-                      style={[styles.boton, styles.botonCancelar]}
-                      onPress={cancelarFormulario}
-                    >
-                      <ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.boton, styles.botonGuardar]}
-                      onPress={guardarIngrediente}
-                    >
-                      <ThemedText style={styles.botonTexto}>Guardar</ThemedText>
-                    </TouchableOpacity>
-                  </ThemedView>
                 </ThemedView>
-              </View>
+              </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
-          </TouchableWithoutFeedback>
+          </ThemedView>
         </Modal>
       </ParallaxScrollView>
     </GestureHandlerRootView>
@@ -607,13 +638,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 6,
     padding: 10,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(161, 206, 220, 0.5)',
-    color: '#333',
   },
   botonesContainer: {
     flexDirection: 'row',
@@ -670,7 +698,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: 'rgba(161, 206, 220, 0.5)',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   unidadButtonSelected: {
     backgroundColor: '#A1CEDC',
@@ -714,10 +741,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+  },
+  keyboardAvoidingContainer: {
+    width: '100%',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  modalContentWrapper: {
+    width: '100%',
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContainer: {
     width: '100%',
+    maxWidth: 500,
     borderRadius: 12,
     padding: 20,
     shadowColor: '#000',
@@ -725,5 +763,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  closeButton: {
+    padding: 4,
   },
 });
