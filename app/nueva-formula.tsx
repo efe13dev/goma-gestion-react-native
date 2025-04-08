@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Modal } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, View, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Modal, ActivityIndicator } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { agregarFormula } from '@/data/formulas';
+import { addFormula } from '@/api/formulasApi';
 import type { Ingrediente, Formula } from '@/data/formulas';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
@@ -24,6 +24,9 @@ export default function NuevaFormulaScreen() {
   const [ingredienteCantidad, setIngredienteCantidad] = useState('');
   const [ingredienteUnidad, setIngredienteUnidad] = useState('gr');
   const [editandoIndex, setEditandoIndex] = useState<number | null>(null);
+  
+  // Estado para manejar la carga
+  const [isLoading, setIsLoading] = useState(false);
 
   // Obtener el color del texto según el tema
   const textColor = useThemeColor({}, 'text');
@@ -121,7 +124,7 @@ export default function NuevaFormulaScreen() {
   };
 
   // Función para guardar la fórmula completa
-  const guardarFormula = () => {
+  const guardarFormula = async () => {
     // Validar que se haya ingresado un nombre de color
     if (!nombreColor.trim()) {
       Alert.alert('Error', 'Por favor ingresa el nombre del color');
@@ -144,25 +147,35 @@ export default function NuevaFormulaScreen() {
       ingredientes,
     };
 
-    // Guardar la fórmula
-    const resultado = agregarFormula(nuevaFormula);
+    // Mostrar indicador de carga
+    setIsLoading(true);
+    
+    try {
+      // Guardar la fórmula usando la API
+      const resultado = await addFormula(nuevaFormula);
 
-    if (resultado) {
-      Alert.alert(
-        'Éxito',
-        'La fórmula se ha guardado correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navegar de vuelta a la lista de fórmulas
-              router.replace('/');
+      if (resultado) {
+        Alert.alert(
+          'Éxito',
+          'La fórmula se ha guardado correctamente',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Navegar de vuelta a la lista de fórmulas
+                router.replace('/');
+              },
             },
-          },
-        ]
-      );
-    } else {
-      Alert.alert('Error', 'Ya existe una fórmula con ese nombre');
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Ya existe una fórmula con ese nombre o hubo un problema al guardar');
+      }
+    } catch (error) {
+      console.error('Error al guardar la fórmula:', error);
+      Alert.alert('Error', 'Ocurrió un error al guardar la fórmula. Intente nuevamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -173,6 +186,13 @@ export default function NuevaFormulaScreen() {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#A1CEDC" />
+            <ThemedText style={styles.loadingText}>Guardando fórmula...</ThemedText>
+          </View>
+        )}
+        
         <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
           <ThemedView style={styles.header}>
             <ThemedText type="title" style={styles.title}>Nueva Fórmula</ThemedText>
@@ -200,19 +220,23 @@ export default function NuevaFormulaScreen() {
             </ThemedText>
 
             {ingredientes.map((ingrediente, index) => (
-              <ThemedView key={`ingrediente-${ingrediente.nombre}-${index}`} style={styles.ingredienteRow}>
-                <TouchableOpacity onPress={() => iniciarEdicion(index)}>
-                  <ThemedText style={styles.ingredienteNombre}>
-                    {ingrediente.nombre}
-                  </ThemedText>
-                </TouchableOpacity>
-                <ThemedView style={styles.accionesContainer}>
-                  <ThemedText style={styles.cantidad}>
+              <ThemedView key={`${ingrediente.nombre}-${index}`} style={styles.ingredienteItem}>
+                <ThemedView style={styles.ingredienteInfo}>
+                  <ThemedText style={styles.ingredienteNombre}>{ingrediente.nombre}</ThemedText>
+                  <ThemedText style={styles.ingredienteCantidad}>
                     {ingrediente.cantidad} {ingrediente.unidad}
                   </ThemedText>
+                </ThemedView>
+                <ThemedView style={styles.ingredienteAcciones}>
                   <TouchableOpacity
+                    style={styles.accionBoton}
+                    onPress={() => iniciarEdicion(index)}
+                  >
+                    <Ionicons name="pencil" size={20} color="#A1CEDC" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.accionBoton}
                     onPress={() => eliminarIngrediente(index)}
-                    style={styles.deleteButton}
                   >
                     <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
                   </TouchableOpacity>
@@ -220,7 +244,6 @@ export default function NuevaFormulaScreen() {
               </ThemedView>
             ))}
 
-            {/* Botón para mostrar el formulario de añadir */}
             <TouchableOpacity
               style={styles.botonAgregar}
               onPress={mostrarFormularioAgregar}
@@ -232,7 +255,7 @@ export default function NuevaFormulaScreen() {
             </TouchableOpacity>
           </ThemedView>
 
-          <ThemedView style={styles.botonesGuardarContainer}>
+          <ThemedView style={styles.botonesContainer}>
             <TouchableOpacity
               style={[styles.boton, styles.botonCancelar]}
               onPress={() => router.back()}
@@ -244,7 +267,7 @@ export default function NuevaFormulaScreen() {
               style={[styles.boton, styles.botonGuardar]}
               onPress={guardarFormula}
             >
-              <ThemedText style={styles.botonTexto}>Guardar Fórmula</ThemedText>
+              <ThemedText style={styles.botonTexto}>Guardar</ThemedText>
             </TouchableOpacity>
           </ThemedView>
         </ScrollView>
@@ -256,116 +279,124 @@ export default function NuevaFormulaScreen() {
           animationType="fade"
           onRequestClose={cancelarFormulario}
         >
-          <View style={styles.modalOverlay}>
-            <ThemedView style={styles.modalContainer}>
-              <ThemedText type="subtitle" style={styles.subtitleForm}>
-                {editandoIndex !== null ? 'Editar Ingrediente' : 'Añadir Ingrediente'}
-              </ThemedText>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+            >
+              <View style={styles.modalOverlay}>
+                <ThemedView style={[styles.modalContainer, { backgroundColor }]}>
+                  <ThemedText type="subtitle" style={styles.subtitleForm}>
+                    {editandoIndex !== null ? 'Editar Ingrediente' : 'Añadir Ingrediente'}
+                  </ThemedText>
 
-              <ThemedView style={styles.inputRow}>
-                <ThemedText style={styles.label}>Nombre:</ThemedText>
-                <TextInput
-                  ref={ingredienteNombreRef}
-                  style={[styles.input, { color: textColor }]}
-                  value={ingredienteNombre}
-                  onChangeText={setIngredienteNombre}
-                  placeholder="Nombre del ingrediente"
-                  placeholderTextColor="rgba(150, 150, 150, 0.8)"
-                  editable={true}
-                  autoCapitalize="sentences"
-                />
-              </ThemedView>
+                  <ThemedView style={styles.inputRow}>
+                    <ThemedText style={styles.label}>Nombre:</ThemedText>
+                    <TextInput
+                      ref={ingredienteNombreRef}
+                      style={[styles.input, { color: textColor }]}
+                      value={ingredienteNombre}
+                      onChangeText={setIngredienteNombre}
+                      placeholder="Nombre del ingrediente"
+                      placeholderTextColor="rgba(150, 150, 150, 0.8)"
+                      editable={true}
+                      autoCapitalize="sentences"
+                    />
+                  </ThemedView>
 
-              <ThemedView style={styles.inputRow}>
-                <ThemedText style={styles.label}>Cantidad:</ThemedText>
-                <TextInput
-                  ref={ingredienteCantidadRef}
-                  style={[styles.input, { color: textColor }]}
-                  value={ingredienteCantidad}
-                  onChangeText={setIngredienteCantidad}
-                  placeholder="Cantidad"
-                  keyboardType="numeric"
-                  placeholderTextColor="rgba(150, 150, 150, 0.8)"
-                  editable={true}
-                />
-              </ThemedView>
+                  <ThemedView style={styles.inputRow}>
+                    <ThemedText style={styles.label}>Cantidad:</ThemedText>
+                    <TextInput
+                      ref={ingredienteCantidadRef}
+                      style={[styles.input, { color: textColor }]}
+                      value={ingredienteCantidad}
+                      onChangeText={setIngredienteCantidad}
+                      placeholder="Cantidad"
+                      keyboardType="numeric"
+                      placeholderTextColor="rgba(150, 150, 150, 0.8)"
+                      editable={true}
+                    />
+                  </ThemedView>
 
-              <ThemedView style={styles.inputRow}>
-                <ThemedText style={styles.label}>Unidad:</ThemedText>
-                <ThemedView style={styles.unidadSelectorContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.unidadButton,
-                      ingredienteUnidad === 'gr' && styles.unidadButtonSelected,
-                    ]}
-                    onPress={() => setIngredienteUnidad('gr')}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.unidadButtonText,
-                        ingredienteUnidad === 'gr' &&
-                          styles.unidadButtonTextSelected,
-                      ]}
+                  <ThemedView style={styles.inputRow}>
+                    <ThemedText style={styles.label}>Unidad:</ThemedText>
+                    <ThemedView style={styles.unidadSelectorContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.unidadButton,
+                          ingredienteUnidad === 'gr' && styles.unidadButtonSelected,
+                        ]}
+                        onPress={() => setIngredienteUnidad('gr')}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.unidadButtonText,
+                            ingredienteUnidad === 'gr' &&
+                              styles.unidadButtonTextSelected,
+                          ]}
+                        >
+                          gr
+                        </ThemedText>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.unidadButton,
+                          ingredienteUnidad === 'kg' && styles.unidadButtonSelected,
+                        ]}
+                        onPress={() => setIngredienteUnidad('kg')}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.unidadButtonText,
+                            ingredienteUnidad === 'kg' &&
+                              styles.unidadButtonTextSelected,
+                          ]}
+                        >
+                          kg
+                        </ThemedText>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.unidadButton,
+                          ingredienteUnidad === 'L' && styles.unidadButtonSelected,
+                        ]}
+                        onPress={() => setIngredienteUnidad('L')}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.unidadButtonText,
+                            ingredienteUnidad === 'L' &&
+                              styles.unidadButtonTextSelected,
+                          ]}
+                        >
+                          L
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </ThemedView>
+                  </ThemedView>
+
+                  <ThemedView style={styles.botonesContainer}>
+                    <TouchableOpacity
+                      style={[styles.boton, styles.botonCancelar]}
+                      onPress={cancelarFormulario}
                     >
-                      gr
-                    </ThemedText>
-                  </TouchableOpacity>
+                      <ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.unidadButton,
-                      ingredienteUnidad === 'kg' && styles.unidadButtonSelected,
-                    ]}
-                    onPress={() => setIngredienteUnidad('kg')}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.unidadButtonText,
-                        ingredienteUnidad === 'kg' &&
-                          styles.unidadButtonTextSelected,
-                      ]}
+                    <TouchableOpacity
+                      style={[styles.boton, styles.botonGuardar]}
+                      onPress={guardarIngrediente}
                     >
-                      kg
-                    </ThemedText>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.unidadButton,
-                      ingredienteUnidad === 'L' && styles.unidadButtonSelected,
-                    ]}
-                    onPress={() => setIngredienteUnidad('L')}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.unidadButtonText,
-                        ingredienteUnidad === 'L' &&
-                          styles.unidadButtonTextSelected,
-                      ]}
-                    >
-                      L
-                    </ThemedText>
-                  </TouchableOpacity>
+                      <ThemedText style={styles.botonTexto}>Guardar</ThemedText>
+                    </TouchableOpacity>
+                  </ThemedView>
                 </ThemedView>
-              </ThemedView>
-
-              <ThemedView style={styles.botonesContainer}>
-                <TouchableOpacity
-                  style={[styles.boton, styles.botonCancelar]}
-                  onPress={cancelarFormulario}
-                >
-                  <ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.boton, styles.botonGuardar]}
-                  onPress={guardarIngrediente}
-                >
-                  <ThemedText style={styles.botonTexto}>Guardar</ThemedText>
-                </TouchableOpacity>
-              </ThemedView>
-            </ThemedView>
-          </View>
+              </View>
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
         </Modal>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
@@ -376,140 +407,163 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#fff',
+  },
   header: {
-    padding: 16,
-    marginBottom: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
   },
   title: {
     textAlign: 'center',
   },
   formContainer: {
     padding: 16,
+    marginHorizontal: 12,
+    backgroundColor: 'rgba(161, 206, 220, 0.1)',
+    borderRadius: 12,
     marginBottom: 16,
   },
   label: {
-    marginBottom: 8,
     fontSize: 16,
+    marginBottom: 8,
   },
   input: {
-    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 6,
+    padding: 10,
+    fontSize: 16,
     borderWidth: 1,
     borderColor: 'rgba(161, 206, 220, 0.5)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    fontSize: 16,
+    color: '#333',
   },
   ingredientesContainer: {
     padding: 16,
+    marginHorizontal: 12,
+    backgroundColor: 'rgba(161, 206, 220, 0.1)',
+    borderRadius: 12,
     marginBottom: 16,
   },
   subtitle: {
     marginBottom: 16,
   },
   subtitleForm: {
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center',
   },
-  ingredienteRow: {
+  ingredienteItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(161, 206, 220, 0.3)',
-    borderRadius: 8,
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(161, 206, 220, 0.2)',
+  },
+  ingredienteInfo: {
+    flex: 1,
   },
   ingredienteNombre: {
     fontSize: 16,
+    fontWeight: '500',
   },
-  accionesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cantidad: {
-    marginRight: 12,
+  ingredienteCantidad: {
     fontSize: 14,
-    opacity: 0.7,
+    opacity: 0.8,
+    marginTop: 4,
   },
-  deleteButton: {
-    padding: 4,
-  },
-  formularioContainer: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: 'rgba(161, 206, 220, 0.05)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(161, 206, 220, 0.3)',
-  },
-  inputRow: {
-    marginBottom: 12,
-  },
-  unidadSelectorContainer: {
+  ingredienteAcciones: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
+    gap: 12,
   },
-  unidadButton: {
-    flex: 1,
+  accionBoton: {
     padding: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(161, 206, 220, 0.5)',
-    borderRadius: 4,
-    marginHorizontal: 4,
-  },
-  unidadButtonSelected: {
-    backgroundColor: '#A1CEDC',
-  },
-  unidadButtonText: {
-    fontSize: 14,
-  },
-  unidadButtonTextSelected: {
-    color: '#fff',
-  },
-  botonesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  botonesGuardarContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    marginBottom: 32,
-  },
-  boton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  botonGuardar: {
-    backgroundColor: '#A1CEDC',
-  },
-  botonCancelar: {
-    backgroundColor: 'rgba(200, 200, 200, 0.3)',
-  },
-  botonTexto: {
-    fontSize: 16,
   },
   botonAgregar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 16,
     padding: 12,
-    marginTop: 8,
+    backgroundColor: 'rgba(161, 206, 220, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(161, 206, 220, 0.5)',
   },
   botonAgregarTexto: {
     marginLeft: 8,
     fontSize: 16,
     color: '#A1CEDC',
   },
-  // Estilos para el modal
+  botonesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 12,
+    marginBottom: 24,
+  },
+  boton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  botonCancelar: {
+    backgroundColor: 'rgba(200, 200, 200, 0.8)',
+  },
+  botonGuardar: {
+    backgroundColor: '#A1CEDC',
+  },
+  botonTexto: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  inputRow: {
+    marginBottom: 12,
+  },
+  unidadSelectorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  unidadButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    borderRadius: 6,
+    marginRight: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(161, 206, 220, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  unidadButtonSelected: {
+    backgroundColor: '#A1CEDC',
+    borderColor: '#A1CEDC',
+  },
+  unidadButtonText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  unidadButtonTextSelected: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -519,13 +573,10 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: '100%',
-    padding: 20,
     borderRadius: 12,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,

@@ -2,14 +2,14 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import {
-  actualizarIngrediente,
-  agregarIngrediente,
-  eliminarIngrediente as eliminarIngredienteAPI,
-  formulas,
-} from '@/data/formulas';
-import type { Ingrediente } from '@/data/formulas';
+  getFormulaById,
+  addIngredient,
+  updateIngredient,
+  deleteIngredient as deleteIngredientAPI,
+} from '@/api/formulasApi';
+import type { Ingrediente, Formula } from '@/data/formulas';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
 import {
   Alert,
@@ -24,18 +24,20 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function FormulaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const formula = formulas.find((f) => f.id === id);
-
-  // Estado para los ingredientes
-  const [ingredientes, setIngredientes] = useState<Ingrediente[]>(
-    formula?.ingredientes || []
-  );
+  const router = useRouter();
+  
+  // Estados para manejar la fórmula y sus ingredientes
+  const [formula, setFormula] = useState<Formula | null>(null);
+  const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Estado unificado para el formulario (tanto para añadir como editar)
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -51,17 +53,55 @@ export default function FormulaScreen() {
   const textColor = useThemeColor({}, 'text');
   const backgroundColor = useThemeColor({}, 'background');
 
-  // Actualizar los ingredientes cuando cambia la fórmula
+  // Cargar la fórmula desde la API
   useEffect(() => {
-    if (formula) {
-      setIngredientes(formula.ingredientes);
-    }
-  }, [formula]);
+    const loadFormula = async () => {
+      if (!id) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const formulaData = await getFormulaById(id as string);
+        
+        if (formulaData) {
+          setFormula(formulaData);
+          setIngredientes(formulaData.ingredientes);
+        } else {
+          setError('Fórmula no encontrada');
+        }
+      } catch (err) {
+        console.error('Error al cargar la fórmula:', err);
+        setError('Error al cargar la fórmula');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadFormula();
+  }, [id]);
 
-  if (!formula) {
+  // Si está cargando, mostrar un indicador de carga
+  if (isLoading) {
     return (
-      <ThemedView style={styles.container}>
-        <ThemedText>Fórmula no encontrada</ThemedText>
+      <ThemedView style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#A1CEDC" />
+        <ThemedText style={styles.loadingText}>Cargando fórmula...</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  // Si hay un error o no se encontró la fórmula
+  if (error || !formula) {
+    return (
+      <ThemedView style={[styles.container, styles.centerContent]}>
+        <ThemedText style={styles.errorText}>{error || 'Fórmula no encontrada'}</ThemedText>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <ThemedText style={styles.backButtonText}>Volver</ThemedText>
+        </TouchableOpacity>
       </ThemedView>
     );
   }
@@ -80,7 +120,7 @@ export default function FormulaScreen() {
   };
 
   // Función para guardar el ingrediente (ya sea nuevo o editado)
-  const guardarIngrediente = () => {
+  const guardarIngrediente = async () => {
     if (!ingredienteNombre.trim()) {
       Alert.alert('Error', 'El nombre del ingrediente es obligatorio');
       return;
@@ -100,42 +140,50 @@ export default function FormulaScreen() {
       unidad: ingredienteUnidad.trim() || 'gr',
     };
 
-    if (editandoIndex !== null && formula) {
-      // Estamos editando un ingrediente existente
-      const resultado = actualizarIngrediente(
-        formula.id,
-        editandoIndex,
-        nuevoIngrediente
-      );
-      if (resultado) {
-        // Obtener una referencia fresca a la fórmula después de la actualización
-        const formulaActualizada = formulas.find((f) => f.id === formula.id);
+    setIsLoading(true);
+    
+    try {
+      if (editandoIndex !== null && formula) {
+        // Estamos editando un ingrediente existente
+        const resultado = await updateIngredient(
+          formula.id,
+          editandoIndex,
+          nuevoIngrediente
+        );
         
-        // Actualizar el estado local con los ingredientes actualizados
-        if (formulaActualizada) {
-          setIngredientes([...formulaActualizada.ingredientes]);
+        if (resultado) {
+          // Actualizar la fórmula después de la modificación
+          const formulaActualizada = await getFormulaById(formula.id);
+          if (formulaActualizada) {
+            setFormula(formulaActualizada);
+            setIngredientes(formulaActualizada.ingredientes);
+          }
+        } else {
+          Alert.alert('Error', 'No se pudo actualizar el ingrediente');
         }
-      } else {
-        Alert.alert('Error', 'No se pudo actualizar el ingrediente');
-      }
-    } else if (formula) {
-      // Estamos añadiendo un nuevo ingrediente
-      const resultado = agregarIngrediente(formula.id, nuevoIngrediente);
-      if (resultado) {
-        // Obtener una referencia fresca a la fórmula después de añadir
-        const formulaActualizada = formulas.find((f) => f.id === formula.id);
+      } else if (formula) {
+        // Estamos añadiendo un nuevo ingrediente
+        const resultado = await addIngredient(formula.id, nuevoIngrediente);
         
-        // Actualizar el estado local con los ingredientes actualizados
-        if (formulaActualizada) {
-          setIngredientes([...formulaActualizada.ingredientes]);
+        if (resultado) {
+          // Actualizar la fórmula después de añadir el ingrediente
+          const formulaActualizada = await getFormulaById(formula.id);
+          if (formulaActualizada) {
+            setFormula(formulaActualizada);
+            setIngredientes(formulaActualizada.ingredientes);
+          }
+        } else {
+          Alert.alert('Error', 'No se pudo agregar el ingrediente');
         }
-      } else {
-        Alert.alert('Error', 'No se pudo agregar el ingrediente');
       }
+    } catch (err) {
+      console.error('Error al guardar el ingrediente:', err);
+      Alert.alert('Error', 'Ocurrió un error al guardar el ingrediente');
+    } finally {
+      setIsLoading(false);
+      // Limpiar el formulario y cerrar
+      cancelarFormulario();
     }
-
-    // Limpiar el formulario y cerrar
-    cancelarFormulario();
   };
 
   // Función para cancelar el formulario
@@ -157,7 +205,7 @@ export default function FormulaScreen() {
   };
 
   // Función para eliminar un ingrediente
-  const eliminarIngrediente = (index: number) => {
+  const eliminarIngrediente = async (index: number) => {
     Alert.alert(
       'Confirmar eliminación',
       '¿Estás seguro de que quieres eliminar este ingrediente?',
@@ -173,22 +221,31 @@ export default function FormulaScreen() {
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             if (formula) {
-              const resultado = eliminarIngredienteAPI(formula.id, index);
-              if (resultado) {
-                // Cerrar todos los swipeables
-                closeAllSwipeables();
+              setIsLoading(true);
+              
+              try {
+                const resultado = await deleteIngredientAPI(formula.id, index);
                 
-                // Obtener una referencia fresca a la fórmula después de la eliminación
-                const formulaActualizada = formulas.find((f) => f.id === formula.id);
-                
-                // Actualizar el estado local con los ingredientes actualizados
-                if (formulaActualizada) {
-                  setIngredientes([...formulaActualizada.ingredientes]);
+                if (resultado) {
+                  // Cerrar todos los swipeables
+                  closeAllSwipeables();
+                  
+                  // Actualizar la fórmula después de eliminar el ingrediente
+                  const formulaActualizada = await getFormulaById(formula.id);
+                  if (formulaActualizada) {
+                    setFormula(formulaActualizada);
+                    setIngredientes(formulaActualizada.ingredientes);
+                  }
+                } else {
+                  Alert.alert('Error', 'No se pudo eliminar el ingrediente');
                 }
-              } else {
-                Alert.alert('Error', 'No se pudo eliminar el ingrediente');
+              } catch (err) {
+                console.error('Error al eliminar el ingrediente:', err);
+                Alert.alert('Error', 'Ocurrió un error al eliminar el ingrediente');
+              } finally {
+                setIsLoading(false);
               }
             }
           },
@@ -271,35 +328,41 @@ export default function FormulaScreen() {
             Ingredientes:
           </ThemedText>
 
-          {ingredientes.map((ingrediente, index) => (
-            <Swipeable
-              key={`${formula.id}-${ingrediente.nombre}-${index}`}
-              renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, index)}
-              ref={(ref) => saveSwipeableRef(ref, index)}
-              friction={2}
-              rightThreshold={100}
-              overshootRight={false}
-              containerStyle={styles.swipeableContainer}
-              onSwipeableOpen={(direction) => {
-                if (direction === 'right') return;
-                // Si se abre completamente, mostrar el diálogo de confirmación
-                eliminarIngrediente(index);
-              }}
-            >
-              <ThemedView style={styles.ingredienteRow}>
-                <TouchableOpacity onPress={() => iniciarEdicion(index)}>
-                  <ThemedText style={styles.ingredienteNombre}>
-                    {ingrediente.nombre}
-                  </ThemedText>
-                </TouchableOpacity>
-                <ThemedView style={styles.accionesContainer}>
-                  <ThemedText style={styles.cantidad}>
-                    {ingrediente.cantidad} {ingrediente.unidad}
-                  </ThemedText>
+          {ingredientes.length === 0 ? (
+            <ThemedText style={styles.emptyText}>
+              No hay ingredientes. Añade uno para comenzar.
+            </ThemedText>
+          ) : (
+            ingredientes.map((ingrediente, index) => (
+              <Swipeable
+                key={`${formula.id}-${ingrediente.nombre}-${index}`}
+                renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, index)}
+                ref={(ref) => saveSwipeableRef(ref, index)}
+                friction={2}
+                rightThreshold={100}
+                overshootRight={false}
+                containerStyle={styles.swipeableContainer}
+                onSwipeableOpen={(direction) => {
+                  if (direction === 'right') return;
+                  // Si se abre completamente, mostrar el diálogo de confirmación
+                  eliminarIngrediente(index);
+                }}
+              >
+                <ThemedView style={styles.ingredienteRow}>
+                  <TouchableOpacity onPress={() => iniciarEdicion(index)}>
+                    <ThemedText style={styles.ingredienteNombre}>
+                      {ingrediente.nombre}
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <ThemedView style={styles.accionesContainer}>
+                    <ThemedText style={styles.cantidad}>
+                      {ingrediente.cantidad} {ingrediente.unidad}
+                    </ThemedText>
+                  </ThemedView>
                 </ThemedView>
-              </ThemedView>
-            </Swipeable>
-          ))}
+              </Swipeable>
+            ))
+          )}
 
           {/* Botón para mostrar el formulario de añadir */}
           {!mostrarFormulario && (
@@ -329,7 +392,7 @@ export default function FormulaScreen() {
               keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
             >
               <View style={styles.modalOverlay}>
-                <ThemedView style={styles.modalContainer}>
+                <ThemedView style={[styles.modalContainer, { backgroundColor }]}>
                   <ThemedText type="subtitle" style={styles.subtitleForm}>
                     {editandoIndex !== null ? 'Editar Ingrediente' : 'Añadir Ingrediente'}
                   </ThemedText>
@@ -448,6 +511,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#FF6B6B',
+    marginBottom: 20,
+  },
+  backButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#A1CEDC',
+    borderRadius: 6,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginVertical: 20,
+    fontStyle: 'italic',
+    opacity: 0.7,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -601,22 +694,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 100,
-    borderRadius: 12,
-    marginLeft: 8,
+    height: '100%',
   },
   deleteActionContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
-    height: '100%',
   },
   deleteActionText: {
     color: 'white',
-    fontSize: 16,
-    marginLeft: 8,
+    fontWeight: 'bold',
+    marginTop: 4,
   },
   swipeableContainer: {
-    marginBottom: 8,
+    backgroundColor: 'transparent',
   },
   modalOverlay: {
     flex: 1,
@@ -627,13 +718,10 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: '100%',
-    padding: 20,
     borderRadius: 12,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
