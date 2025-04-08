@@ -163,7 +163,7 @@ export default function NuevaFormulaScreen() {
               text: 'OK',
               onPress: () => {
                 // Navegar de vuelta a la lista de fórmulas
-                router.replace('/');
+                router.replace('/(tabs)/formulas');
               },
             },
           ]
