@@ -36,7 +36,9 @@ export default function HomeScreen() {
 			const data = await loadInventory();
 			setInventory(data);
 		} catch (err) {
-			setError("Error al cargar el inventario desde la API. Intente nuevamente.");
+			setError(
+				"Error al cargar el inventario desde la API. Intente nuevamente.",
+			);
 			console.error("Error loading data:", err);
 		} finally {
 			setIsLoading(false);
@@ -153,7 +155,9 @@ export default function HomeScreen() {
 		return (
 			<View style={styles.loadingContainer}>
 				<ActivityIndicator size="large" color="#A1CEDC" />
-				<ThemedText style={styles.loadingText}>Cargando inventario...</ThemedText>
+				<ThemedText style={styles.loadingText}>
+					Cargando inventario...
+				</ThemedText>
 			</View>
 		);
 	}
@@ -217,7 +221,9 @@ export default function HomeScreen() {
 							placeholderTextColor="#888"
 						/>
 						<TouchableOpacity style={styles.submitButton} onPress={addColor}>
-							<ThemedText style={styles.submitButtonText}>Agregar Color</ThemedText>
+							<ThemedText style={styles.submitButtonText}>
+								Agregar Color
+							</ThemedText>
 						</TouchableOpacity>
 					</ThemedView>
 				)}
