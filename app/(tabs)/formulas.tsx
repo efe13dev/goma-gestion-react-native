@@ -244,7 +244,8 @@ const styles = StyleSheet.create({
 	formulaCard: {
 		backgroundColor: "rgba(161, 206, 220, 0.05)",
 		borderRadius: 12,
-		padding: 16,
+		paddingVertical: 20,
+		paddingHorizontal: 16,
 		marginVertical: 6,
 		borderWidth: 1,
 		borderColor: "rgba(161, 206, 220, 0.2)",

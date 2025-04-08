@@ -338,31 +338,24 @@ export default function FormulaScreen() {
           ) : (
             ingredientes.map((ingrediente, index) => (
               <Swipeable
-                key={`${formula.id}-${ingrediente.nombre}-${index}`}
-                renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, index)}
+                key={`${formula?.id}-${ingrediente.nombre}-${index}`}
                 ref={(ref) => saveSwipeableRef(ref, index)}
-                friction={2}
-                rightThreshold={100}
-                overshootRight={false}
+                renderRightActions={(progress, dragX) =>
+                  renderRightActions(progress, dragX, index)
+                }
                 containerStyle={styles.swipeableContainer}
-                onSwipeableOpen={(direction) => {
-                  if (direction === 'right') return;
-                  // Si se abre completamente, mostrar el diálogo de confirmación
-                  eliminarIngrediente(index);
-                }}
+                overshootRight={false}
               >
-                <ThemedView style={styles.ingredienteRow}>
-                  <TouchableOpacity onPress={() => iniciarEdicion(index)}>
+                <TouchableOpacity onPress={() => iniciarEdicion(index)}>
+                  <ThemedView style={styles.ingredienteRow}>
                     <ThemedText style={styles.ingredienteNombre}>
                       {ingrediente.nombre}
                     </ThemedText>
-                  </TouchableOpacity>
-                  <ThemedView style={styles.accionesContainer}>
                     <ThemedText style={styles.cantidad}>
                       {ingrediente.cantidad} {ingrediente.unidad}
                     </ThemedText>
                   </ThemedView>
-                </ThemedView>
+                </TouchableOpacity>
               </Swipeable>
             ))
           )}
@@ -589,6 +582,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginVertical: 8,
+    marginHorizontal: 6,
   },
   subtitle: {
     marginBottom: 16,
@@ -601,16 +595,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(161, 206, 220, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   ingredienteNombre: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '500',
   },
   cantidad: {
     fontSize: 18,
     fontWeight: 'bold',
+    minWidth: 36,
+    textAlign: 'right',
   },
   reactLogo: {
     width: '50%',
@@ -735,6 +734,9 @@ const styles = StyleSheet.create({
   },
   swipeableContainer: {
     backgroundColor: 'transparent',
+    marginVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   modalOverlay: {
     flex: 1,
