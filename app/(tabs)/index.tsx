@@ -353,17 +353,16 @@ export default function HomeScreen() {
 						source={require("@/assets/images/palot.png")}
 						style={styles.reactLogo}
 					/>
+					<View style={styles.titleContainer}>
+						<ThemedText type="title" style={styles.titleText}>Stock</ThemedText>
+						<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
+							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
+						</TouchableOpacity>
+					</View>
 				</View>
 
 				{/* Contenido */}
 				<View style={styles.content}>
-					<ThemedView style={styles.titleContainer}>
-						<ThemedText type="title">Stock</ThemedText>
-						<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
-							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
-						</TouchableOpacity>
-					</ThemedView>
-
 					{error && (
 						<ThemedView style={styles.errorContainer}>
 							<ThemedText style={styles.errorText}>{error}</ThemedText>
@@ -453,22 +452,33 @@ const styles = StyleSheet.create({
 	},
 	header: {
 		backgroundColor: "#A1CEDC",
-		height: 150,
-		justifyContent: "center",
+		height: 180,
+		justifyContent: "space-evenly", // Distribuir el espacio uniformemente
 		alignItems: "center",
+		borderBottomLeftRadius: 0,
+		borderBottomRightRadius: 0,
+		paddingBottom: 10, // Añadir un poco de padding abajo
 	},
 	content: {
 		flex: 1,
-		paddingHorizontal: 6,
-		paddingTop: 10,
+		paddingHorizontal: 16,
+		paddingTop: 16,
 	},
 	titleContainer: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "center",
-		gap: 8,
-		marginTop: -20,
-		marginBottom: 12,
+		justifyContent: "center", // Centrar horizontalmente
+		width: "100%",
+		paddingHorizontal: 20,
+	},
+	titleText: {
+		fontSize: 28,
+		fontWeight: "bold",
+		color: "white",
+		textShadowColor: 'rgba(0, 0, 0, 0.2)',
+		textShadowOffset: { width: 1, height: 1 },
+		textShadowRadius: 2,
+		marginRight: 15, // Espacio entre el título y el botón
 	},
 	colorContainer: {
 		padding: 12,
@@ -559,17 +569,19 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 	},
 	reloadButton: {
-		marginLeft: 8,
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		backgroundColor: "rgba(161, 206, 220, 0.2)",
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: "rgba(255, 255, 255, 0.3)",
 		justifyContent: "center",
 		alignItems: "center",
+		borderWidth: 1,
+		borderColor: "rgba(255, 255, 255, 0.5)",
 	},
 	reloadButtonText: {
-		fontSize: 20,
+		fontSize: 22,
 		fontWeight: "bold",
+		color: "white",
 	},
 	headerContainer: {
 		flexDirection: "row",
