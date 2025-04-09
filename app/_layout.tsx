@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { cargarFormulas } from '@/data/formulas';
@@ -76,6 +77,7 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
+      <Toast />
     </GestureHandlerRootView>
   );
 }

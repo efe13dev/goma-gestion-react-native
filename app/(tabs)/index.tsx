@@ -1,12 +1,12 @@
 import {
 	ActivityIndicator,
-	Alert,
 	Image,
 	StyleSheet,
 	TextInput,
 	TouchableOpacity,
 	View,
 	Animated,
+	Alert, // Import Alert from react-native
 } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -20,8 +20,14 @@ import {
 } from "@/data/colors";
 import { useState, useEffect, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
-import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
+import DraggableFlatList, {
+	ScaleDecorator,
+} from "react-native-draggable-flatlist";
+import {
+	GestureHandlerRootView,
+	Swipeable,
+} from "react-native-gesture-handler";
+import { showError, showSuccess } from "@/utils/toast"; // Removed showConfirmation
 
 export default function HomeScreen() {
 	const [inventory, setInventory] = useState<RubberColor[]>([]);
@@ -31,13 +37,41 @@ export default function HomeScreen() {
 	const [newColorName, setNewColorName] = useState("");
 	const [newColorQuantity, setNewColorQuantity] = useState("");
 	const [showForm, setShowForm] = useState(false);
+	const [colorOrder, setColorOrder] = useState<string[]>([]);
 
 	const loadData = useCallback(async () => {
 		setIsLoading(true);
 		setError(null);
 		try {
 			const data = await loadInventory();
-			setInventory(data);
+
+			// Si ya tenemos un orden guardado, ordenamos los colores según ese orden
+			if (colorOrder.length > 0) {
+				// Primero ordenamos los colores que ya conocemos
+				const orderedColors = [...data].sort((a, b) => {
+					const indexA = colorOrder.indexOf(a.id);
+					const indexB = colorOrder.indexOf(b.id);
+
+					// Si ambos colores están en el orden guardado
+					if (indexA !== -1 && indexB !== -1) {
+						return indexA - indexB;
+					}
+
+					// Si solo uno de los colores está en el orden guardado
+					if (indexA !== -1) return -1;
+					if (indexB !== -1) return 1;
+
+					// Si ninguno está en el orden guardado, mantener el orden original
+					return 0;
+				});
+
+				setInventory(orderedColors);
+			} else {
+				// Si no tenemos un orden guardado, simplemente establecemos los datos
+				setInventory(data);
+				// Y guardamos el orden actual
+				setColorOrder(data.map((color) => color.id));
+			}
 		} catch (err) {
 			setError(
 				"Error al cargar el inventario desde la API. Intente nuevamente.",
@@ -46,7 +80,7 @@ export default function HomeScreen() {
 		} finally {
 			setIsLoading(false);
 		}
-	}, []);
+	}, [colorOrder]);
 
 	// Load data when component mounts
 	useEffect(() => {
@@ -60,29 +94,32 @@ export default function HomeScreen() {
 		}, [loadData]),
 	);
 
-	const adjustQuantity = useCallback(async (id: string, increment: number) => {
-		try {
-			const newInventory = inventory.map((color) =>
-				color.id === id
-					? { ...color, quantity: Math.max(0, color.quantity + increment) }
-					: color,
-			);
-			setInventory(newInventory);
-			await saveInventory(newInventory);
-		} catch (err) {
-			Alert.alert(
-				"Error",
-				"No se pudo actualizar el inventario en la API. Intente nuevamente.",
-			);
-			// Reload data to ensure consistency
-			loadData();
-			console.error("Error adjusting quantity:", err);
-		}
-	}, [inventory, loadData]);
+	const adjustQuantity = useCallback(
+		async (id: string, increment: number) => {
+			try {
+				const newInventory = inventory.map((color) =>
+					color.id === id
+						? { ...color, quantity: Math.max(0, color.quantity + increment) }
+						: color,
+				);
+				setInventory(newInventory);
+				await saveInventory(newInventory);
+			} catch (err) {
+				showError(
+					"Error",
+					"No se pudo actualizar el inventario en la API. Intente nuevamente.",
+				);
+				// Reload data to ensure consistency
+				loadData();
+				console.error("Error adjusting quantity:", err);
+			}
+		},
+		[inventory, loadData],
+	);
 
 	const addColor = async () => {
 		if (!newColorName.trim()) {
-			Alert.alert("Error", "Debe ingresar un nombre para el color");
+			showError("Error", "Debe ingresar un nombre para el color");
 			return;
 		}
 
@@ -91,11 +128,11 @@ export default function HomeScreen() {
 		if (newColorQuantity.trim()) {
 			quantity = Number.parseInt(newColorQuantity);
 			if (Number.isNaN(quantity)) {
-				Alert.alert("Error", "La cantidad debe ser un número válido");
+				showError("Error", "La cantidad debe ser un número válido");
 				return;
 			}
 			if (quantity < 0) {
-				Alert.alert("Error", "La cantidad no puede ser negativa");
+				showError("Error", "La cantidad no puede ser negativa");
 				return;
 			}
 		}
@@ -109,9 +146,9 @@ export default function HomeScreen() {
 			setShowForm(false);
 			// Reload data
 			await loadData();
-			Alert.alert("Éxito", `Color ${newColorName} agregado correctamente`);
+			showSuccess("¡Añadido!", `Color ${newColorName} agregado`);
 		} catch (err) {
-			Alert.alert(
+			showError(
 				"Error",
 				"No se pudo agregar el color. Es posible que ya exista o haya un problema con la API.",
 			);
@@ -121,34 +158,40 @@ export default function HomeScreen() {
 		}
 	};
 
-	const deleteColor = useCallback(async (name: string) => {
-		try {
-			setIsLoading(true);
-			await deleteColorFromInventory(name);
-			await loadData();
-			Alert.alert("Éxito", `Color ${name} eliminado correctamente`);
-		} catch (err) {
-			Alert.alert("Error", "No se pudo eliminar el color. Intente nuevamente.");
-			console.error("Error deleting color:", err);
-		} finally {
-			setIsLoading(false);
-		}
-	}, [loadData]);
+	const deleteColor = useCallback(
+		async (name: string) => {
+			try {
+				setIsLoading(true);
+				await deleteColorFromInventory(name);
+				await loadData();
+				showSuccess("¡Eliminado!", `Color ${name} eliminado`);
+			} catch (err) {
+				showError("Error", "No se pudo eliminar el color. Intente nuevamente.");
+				console.error("Error deleting color:", err);
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[loadData],
+	);
 
-	const confirmDeleteColor = useCallback((color: RubberColor) => {
-		Alert.alert(
-			"Eliminar Color",
-			`¿Está seguro que desea eliminar ${color.name}?`,
-			[
-				{ text: "Cancelar", style: "cancel" },
-				{
-					text: "Eliminar",
-					style: "destructive",
-					onPress: () => deleteColor(color.name),
-				},
-			],
-		);
-	}, [deleteColor]);
+	const confirmDeleteColor = useCallback(
+		(color: RubberColor) => {
+			Alert.alert(
+				"Eliminar Color",
+				`¿Está seguro que desea eliminar ${color.name}?`,
+				[
+					{ text: "Cancelar", style: "cancel" },
+					{
+						text: "Eliminar",
+						style: "destructive",
+						onPress: () => deleteColor(color.name),
+					},
+				],
+			);
+		},
+		[deleteColor],
+	);
 
 	const reloadData = () => {
 		loadData();
@@ -158,113 +201,126 @@ export default function HomeScreen() {
 	const handleDragEnd = async ({ data }: { data: RubberColor[] }) => {
 		try {
 			setInventory(data);
+			// Guardar el nuevo orden
+			setColorOrder(data.map((color) => color.id));
 			await updateInventoryOrder(data);
 		} catch (err) {
-			Alert.alert(
+			showError(
 				"Error",
-				"No se pudo actualizar el orden en la API. Intente nuevamente."
+				"No se pudo actualizar el orden en la API. Intente nuevamente.",
 			);
 			console.error("Error updating order:", err);
 		}
 	};
 
 	// Renderizar cada elemento de la lista
-	const renderItem = useCallback(({ item, drag, isActive }: { 
-		item: RubberColor; 
-		drag: () => void; 
-		isActive: boolean 
-	}) => {
-		const handleAdjustQuantity = (id: string, increment: number) => {
-			adjustQuantity(id, increment);
-		};
-		
-		// Renderizar acciones de deslizamiento (eliminar)
-		const renderRightActions = (progress: Animated.AnimatedInterpolation<number>) => {
-			const trans = progress.interpolate({
-				inputRange: [0, 1],
-				outputRange: [100, 0],
-			});
-			
-			return (
-				<Animated.View
-					style={[
-						styles.deleteAction,
-						{
-							transform: [{ translateX: trans }],
-						},
-					]}
-				>
-					<TouchableOpacity
-						style={styles.deleteActionContent}
-						onPress={() => confirmDeleteColor(item)}
-					>
-						<ThemedText style={styles.deleteActionText}>Eliminar</ThemedText>
-					</TouchableOpacity>
-				</Animated.View>
-			);
-		};
-		
-		return (
-			<ScaleDecorator>
-				<Swipeable
-					renderRightActions={renderRightActions}
-					enabled={!isActive}
-				>
-					<ThemedView 
+	const renderItem = useCallback(
+		({
+			item,
+			drag,
+			isActive,
+		}: {
+			item: RubberColor;
+			drag: () => void;
+			isActive: boolean;
+		}) => {
+			const handleAdjustQuantity = (id: string, increment: number) => {
+				adjustQuantity(id, increment);
+			};
+
+			// Renderizar acciones de deslizamiento (eliminar)
+			const renderRightActions = (
+				progress: Animated.AnimatedInterpolation<number>,
+			) => {
+				const trans = progress.interpolate({
+					inputRange: [0, 1],
+					outputRange: [100, 0],
+				});
+
+				return (
+					<Animated.View
 						style={[
-							styles.colorRow, 
-							isActive && { opacity: 0.7, elevation: 4 }
+							styles.deleteAction,
+							{
+								transform: [{ translateX: trans }],
+							},
 						]}
 					>
 						<TouchableOpacity
-							onLongPress={drag}
-							disabled={isActive}
-							style={styles.dragHandle}
+							style={styles.deleteActionContent}
+							onPress={() => confirmDeleteColor(item)}
 						>
-							<ThemedText style={styles.dragHandleText}>≡</ThemedText>
+							<ThemedText style={styles.deleteActionText}>Eliminar</ThemedText>
 						</TouchableOpacity>
-						
-						<TouchableOpacity
-							style={styles.colorNameContainer}
-							onPress={() => setSelectedId(selectedId === item.id ? null : item.id)}
-						>
-							<ThemedText style={styles.colorName}>
-								{item.name.charAt(0).toUpperCase() + item.name.slice(1)}
-							</ThemedText>
-						</TouchableOpacity>
-						
-						<View style={styles.quantityContainer}>
-							{selectedId === item.id ? (
-								<>
-									<TouchableOpacity
-										style={styles.button}
-										onPress={() => handleAdjustQuantity(item.id, -1)}
-									>
-										<ThemedText style={styles.buttonText}>-</ThemedText>
-									</TouchableOpacity>
+					</Animated.View>
+				);
+			};
 
+			return (
+				<ScaleDecorator>
+					<Swipeable
+						renderRightActions={renderRightActions}
+						enabled={!isActive}
+					>
+						<ThemedView
+							style={[
+								styles.colorRow,
+								isActive && { opacity: 0.7, elevation: 4 },
+							]}
+						>
+							<TouchableOpacity
+								onLongPress={drag}
+								disabled={isActive}
+								style={styles.dragHandle}
+							>
+								<ThemedText style={styles.dragHandleText}>≡</ThemedText>
+							</TouchableOpacity>
+
+							<TouchableOpacity
+								style={styles.colorNameContainer}
+								onPress={() =>
+									setSelectedId(selectedId === item.id ? null : item.id)
+								}
+							>
+								<ThemedText style={styles.colorName}>
+									{item.name.charAt(0).toUpperCase() + item.name.slice(1)}
+								</ThemedText>
+							</TouchableOpacity>
+
+							<View style={styles.quantityContainer}>
+								{selectedId === item.id ? (
+									<>
+										<TouchableOpacity
+											style={styles.button}
+											onPress={() => handleAdjustQuantity(item.id, -1)}
+										>
+											<ThemedText style={styles.buttonText}>-</ThemedText>
+										</TouchableOpacity>
+
+										<ThemedText style={styles.quantity}>
+											{item.quantity}
+										</ThemedText>
+
+										<TouchableOpacity
+											style={styles.button}
+											onPress={() => handleAdjustQuantity(item.id, 1)}
+										>
+											<ThemedText style={styles.buttonText}>+</ThemedText>
+										</TouchableOpacity>
+									</>
+								) : (
 									<ThemedText style={styles.quantity}>
 										{item.quantity}
 									</ThemedText>
-
-									<TouchableOpacity
-										style={styles.button}
-										onPress={() => handleAdjustQuantity(item.id, 1)}
-									>
-										<ThemedText style={styles.buttonText}>+</ThemedText>
-									</TouchableOpacity>
-								</>
-							) : (
-								<ThemedText style={styles.quantity}>
-									{item.quantity}
-								</ThemedText>
-							)}
-						</View>
-					</ThemedView>
-				</Swipeable>
-			</ScaleDecorator>
-		);
-	}, [selectedId, adjustQuantity, confirmDeleteColor]);
+								)}
+							</View>
+						</ThemedView>
+					</Swipeable>
+				</ScaleDecorator>
+			);
+		},
+		[selectedId, adjustQuantity, confirmDeleteColor],
+	);
 
 	if (isLoading) {
 		return (
@@ -287,7 +343,7 @@ export default function HomeScreen() {
 						style={styles.reactLogo}
 					/>
 				</View>
-				
+
 				{/* Contenido */}
 				<View style={styles.content}>
 					<ThemedView style={styles.titleContainer}>
@@ -301,7 +357,9 @@ export default function HomeScreen() {
 						<ThemedView style={styles.errorContainer}>
 							<ThemedText style={styles.errorText}>{error}</ThemedText>
 							<TouchableOpacity onPress={reloadData} style={styles.retryButton}>
-								<ThemedText style={styles.retryButtonText}>Reintentar</ThemedText>
+								<ThemedText style={styles.retryButtonText}>
+									Reintentar
+								</ThemedText>
 							</TouchableOpacity>
 						</ThemedView>
 					)}
@@ -338,7 +396,10 @@ export default function HomeScreen() {
 									keyboardType="numeric"
 									placeholderTextColor="#888"
 								/>
-								<TouchableOpacity style={styles.submitButton} onPress={addColor}>
+								<TouchableOpacity
+									style={styles.submitButton}
+									onPress={addColor}
+								>
 									<ThemedText style={styles.submitButtonText}>
 										Agregar Color
 									</ThemedText>
