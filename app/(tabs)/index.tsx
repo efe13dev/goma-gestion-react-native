@@ -17,6 +17,8 @@ import {
 	addNewColor,
 	deleteColorFromInventory,
 	updateInventoryOrder,
+	getColorOrder,
+	updateColorOrder,
 } from "@/data/colors";
 import { useState, useEffect, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
@@ -39,18 +41,24 @@ export default function HomeScreen() {
 	const [showForm, setShowForm] = useState(false);
 	const [colorOrder, setColorOrder] = useState<string[]>([]);
 
+	// Función para cargar los datos
 	const loadData = useCallback(async () => {
 		setIsLoading(true);
 		setError(null);
 		try {
 			const data = await loadInventory();
+			// Cargar el orden guardado de AsyncStorage
+			const savedOrder = await getColorOrder();
 
 			// Si ya tenemos un orden guardado, ordenamos los colores según ese orden
-			if (colorOrder.length > 0) {
+			if (savedOrder.length > 0) {
+				// Guardamos el orden en el estado
+				setColorOrder(savedOrder);
+				
 				// Primero ordenamos los colores que ya conocemos
 				const orderedColors = [...data].sort((a, b) => {
-					const indexA = colorOrder.indexOf(a.id);
-					const indexB = colorOrder.indexOf(b.id);
+					const indexA = savedOrder.indexOf(a.id);
+					const indexB = savedOrder.indexOf(b.id);
 
 					// Si ambos colores están en el orden guardado
 					if (indexA !== -1 && indexB !== -1) {
@@ -70,17 +78,20 @@ export default function HomeScreen() {
 				// Si no tenemos un orden guardado, simplemente establecemos los datos
 				setInventory(data);
 				// Y guardamos el orden actual
-				setColorOrder(data.map((color) => color.id));
+				const newOrder = data.map((color) => color.id);
+				setColorOrder(newOrder);
+				// También lo guardamos en AsyncStorage
+				await updateColorOrder(data);
 			}
 		} catch (err) {
 			setError(
-				"Error al cargar el inventario desde la API. Intente nuevamente.",
+				"No se pudo cargar el inventario. Verifique su conexión e intente nuevamente."
 			);
 			console.error("Error loading data:", err);
 		} finally {
 			setIsLoading(false);
 		}
-	}, [colorOrder]);
+	}, []);
 
 	// Load data when component mounts
 	useEffect(() => {

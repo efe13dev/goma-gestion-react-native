@@ -1,4 +1,4 @@
-import { getStock, updateColor, addColor, deleteColor, updateColorOrder } from "@/api/stockApi";
+import { getStock, updateColor, addColor, deleteColor, updateColorOrder as updateColorOrderApi, getColorOrder as getColorOrderApi } from "@/api/stockApi";
 
 export interface RubberColor {
 	id: string;
@@ -74,9 +74,15 @@ export const deleteColorFromInventory = async (name: string): Promise<void> => {
 export const updateInventoryOrder = async (inventory: RubberColor[]): Promise<void> => {
 	try {
 		// Update the order in the API
-		await updateColorOrder(inventory);
+		await updateColorOrderApi(inventory);
 	} catch (error) {
 		console.error("Error updating inventory order:", error);
 		throw error;
 	}
 };
+
+// Exportar la función getColorOrder desde stockApi
+export const getColorOrder = getColorOrderApi;
+
+// Exportar la función updateColorOrder desde stockApi
+export const updateColorOrder = updateColorOrderApi;
