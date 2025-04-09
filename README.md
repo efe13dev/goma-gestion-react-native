@@ -1,50 +1,93 @@
-# Welcome to your Expo app 👋
+# Aplicación de Gestión de Goma
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Una aplicación móvil desarrollada con React Native y Expo para la gestión de inventario de colores de goma y fórmulas.
 
-## Get started
+![Logo de la aplicación](./assets/images/palot.png)
 
-1. Install dependencies
+## Descripción
 
-   ```bash
-   npm install
-   ```
+Esta aplicación permite gestionar el inventario de colores de goma y sus fórmulas asociadas. Está diseñada para facilitar el seguimiento de stock, la creación de nuevas fórmulas y la gestión eficiente de los recursos.
 
-2. Start the app
+## Características Principales
 
-   ```bash
-    npx expo start
-   ```
+- **Gestión de Stock**:
+  - Visualización del inventario de colores
+  - Añadir, editar y eliminar colores
+  - Reordenar colores mediante arrastrar y soltar
+  - Persistencia del orden de los colores entre sesiones
 
-In the output, you'll find options to open the app in a
+- **Gestión de Fórmulas**:
+  - Visualización de fórmulas existentes
+  - Creación de nuevas fórmulas
+  - Asociación de colores a fórmulas
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Interfaz de Usuario**:
+  - Diseño moderno y atractivo
+  - Notificaciones toast personalizadas
+  - Soporte para modo claro y oscuro
+  - Experiencia de usuario fluida con animaciones
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Tecnologías Utilizadas
 
-## Get a fresh project
+- **Frontend**:
+  - React Native
+  - Expo
+  - React Navigation
+  - React Native Gesture Handler
+  - React Native Draggable FlatList
+  - React Native Toast Message
 
-When you're ready, run:
+- **Almacenamiento**:
+  - AsyncStorage para persistencia local
+  - API REST para datos remotos
 
-```bash
-npm run reset-project
+- **API**:
+  - Conexión con API REST para gestión de datos
+  - Endpoints para obtener, añadir, actualizar y eliminar colores
+
+
+## Estructura del Proyecto
+
+```
+goma-gestion-react-native/
+├── api/                    # Conexión con la API
+│   └── stockApi.ts         # Funciones para interactuar con la API de stock
+├── app/                    # Pantallas principales de la aplicación
+│   └── (tabs)/             # Pestañas de navegación
+│       ├── index.tsx       # Vista de Stock
+│       └── formulas.tsx    # Vista de Fórmulas
+├── assets/                 # Recursos estáticos
+│   └── images/             # Imágenes utilizadas en la aplicación
+├── components/             # Componentes reutilizables
+├── constants/              # Constantes de la aplicación
+├── data/                   # Modelos de datos
+│   └── colors.ts           # Interfaz y funciones para colores
+├── hooks/                  # Hooks personalizados
+└── utils/                  # Utilidades generales
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Uso
 
-## Learn more
+### Gestión de Stock
 
-To learn more about developing your project with Expo, look at the following resources:
+1. En la pestaña "Stock", visualiza todos los colores disponibles.
+2. Utiliza el botón "+" para añadir un nuevo color.
+3. Desliza un color hacia la izquierda para eliminarlo.
+4. Mantén presionado y arrastra para reordenar los colores.
+5. Utiliza el botón de recarga para actualizar el inventario desde la API.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Gestión de Fórmulas
 
-## Join the community
+1. En la pestaña "Fórmulas", visualiza todas las fórmulas disponibles.
+2. Selecciona una fórmula para ver sus detalles.
+3. Utiliza el botón de recarga para actualizar las fórmulas desde la API.
 
-Join our community of developers creating universal apps.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
+
+## Contacto
+
+Para cualquier consulta o sugerencia, por favor contacta conmigo.
