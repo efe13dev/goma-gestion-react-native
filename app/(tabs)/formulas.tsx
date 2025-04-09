@@ -138,7 +138,7 @@ export default function FormulasScreen() {
 								onLongPress={() => confirmDeleteFormula(formula)}
 							>
 								<ThemedText style={styles.colorName}>
-									{formula.nombreColor}
+									{formula.nombreColor.charAt(0).toUpperCase() + formula.nombreColor.slice(1)}
 								</ThemedText>
 							</TouchableOpacity>
 						))

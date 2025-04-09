@@ -6,8 +6,8 @@ import {
 	TextInput,
 	TouchableOpacity,
 	View,
+	Animated,
 } from "react-native";
-import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import {
@@ -16,9 +16,12 @@ import {
 	loadInventory,
 	addNewColor,
 	deleteColorFromInventory,
+	updateInventoryOrder,
 } from "@/data/colors";
 import { useState, useEffect, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
+import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
 
 export default function HomeScreen() {
 	const [inventory, setInventory] = useState<RubberColor[]>([]);
@@ -57,7 +60,7 @@ export default function HomeScreen() {
 		}, [loadData]),
 	);
 
-	const adjustQuantity = async (id: string, increment: number) => {
+	const adjustQuantity = useCallback(async (id: string, increment: number) => {
 		try {
 			const newInventory = inventory.map((color) =>
 				color.id === id
@@ -75,7 +78,7 @@ export default function HomeScreen() {
 			loadData();
 			console.error("Error adjusting quantity:", err);
 		}
-	};
+	}, [inventory, loadData]);
 
 	const addColor = async () => {
 		if (!newColorName.trim()) {
@@ -118,7 +121,21 @@ export default function HomeScreen() {
 		}
 	};
 
-	const confirmDeleteColor = (color: RubberColor) => {
+	const deleteColor = useCallback(async (name: string) => {
+		try {
+			setIsLoading(true);
+			await deleteColorFromInventory(name);
+			await loadData();
+			Alert.alert("Éxito", `Color ${name} eliminado correctamente`);
+		} catch (err) {
+			Alert.alert("Error", "No se pudo eliminar el color. Intente nuevamente.");
+			console.error("Error deleting color:", err);
+		} finally {
+			setIsLoading(false);
+		}
+	}, [loadData]);
+
+	const confirmDeleteColor = useCallback((color: RubberColor) => {
 		Alert.alert(
 			"Eliminar Color",
 			`¿Está seguro que desea eliminar ${color.name}?`,
@@ -131,25 +148,123 @@ export default function HomeScreen() {
 				},
 			],
 		);
-	};
-
-	const deleteColor = async (name: string) => {
-		try {
-			setIsLoading(true);
-			await deleteColorFromInventory(name);
-			await loadData();
-			Alert.alert("Éxito", `Color ${name} eliminado correctamente`);
-		} catch (err) {
-			Alert.alert("Error", "No se pudo eliminar el color. Intente nuevamente.");
-			console.error("Error deleting color:", err);
-		} finally {
-			setIsLoading(false);
-		}
-	};
+	}, [deleteColor]);
 
 	const reloadData = () => {
 		loadData();
 	};
+
+	// Función para manejar el reordenamiento de colores
+	const handleDragEnd = async ({ data }: { data: RubberColor[] }) => {
+		try {
+			setInventory(data);
+			await updateInventoryOrder(data);
+		} catch (err) {
+			Alert.alert(
+				"Error",
+				"No se pudo actualizar el orden en la API. Intente nuevamente."
+			);
+			console.error("Error updating order:", err);
+		}
+	};
+
+	// Renderizar cada elemento de la lista
+	const renderItem = useCallback(({ item, drag, isActive }: { 
+		item: RubberColor; 
+		drag: () => void; 
+		isActive: boolean 
+	}) => {
+		const handleAdjustQuantity = (id: string, increment: number) => {
+			adjustQuantity(id, increment);
+		};
+		
+		// Renderizar acciones de deslizamiento (eliminar)
+		const renderRightActions = (progress: Animated.AnimatedInterpolation<number>) => {
+			const trans = progress.interpolate({
+				inputRange: [0, 1],
+				outputRange: [100, 0],
+			});
+			
+			return (
+				<Animated.View
+					style={[
+						styles.deleteAction,
+						{
+							transform: [{ translateX: trans }],
+						},
+					]}
+				>
+					<TouchableOpacity
+						style={styles.deleteActionContent}
+						onPress={() => confirmDeleteColor(item)}
+					>
+						<ThemedText style={styles.deleteActionText}>Eliminar</ThemedText>
+					</TouchableOpacity>
+				</Animated.View>
+			);
+		};
+		
+		return (
+			<ScaleDecorator>
+				<Swipeable
+					renderRightActions={renderRightActions}
+					enabled={!isActive}
+				>
+					<ThemedView 
+						style={[
+							styles.colorRow, 
+							isActive && { opacity: 0.7, elevation: 4 }
+						]}
+					>
+						<TouchableOpacity
+							onLongPress={drag}
+							disabled={isActive}
+							style={styles.dragHandle}
+						>
+							<ThemedText style={styles.dragHandleText}>≡</ThemedText>
+						</TouchableOpacity>
+						
+						<TouchableOpacity
+							style={styles.colorNameContainer}
+							onPress={() => setSelectedId(selectedId === item.id ? null : item.id)}
+						>
+							<ThemedText style={styles.colorName}>
+								{item.name.charAt(0).toUpperCase() + item.name.slice(1)}
+							</ThemedText>
+						</TouchableOpacity>
+						
+						<View style={styles.quantityContainer}>
+							{selectedId === item.id ? (
+								<>
+									<TouchableOpacity
+										style={styles.button}
+										onPress={() => handleAdjustQuantity(item.id, -1)}
+									>
+										<ThemedText style={styles.buttonText}>-</ThemedText>
+									</TouchableOpacity>
+
+									<ThemedText style={styles.quantity}>
+										{item.quantity}
+									</ThemedText>
+
+									<TouchableOpacity
+										style={styles.button}
+										onPress={() => handleAdjustQuantity(item.id, 1)}
+									>
+										<ThemedText style={styles.buttonText}>+</ThemedText>
+									</TouchableOpacity>
+								</>
+							) : (
+								<ThemedText style={styles.quantity}>
+									{item.quantity}
+								</ThemedText>
+							)}
+						</View>
+					</ThemedView>
+				</Swipeable>
+			</ScaleDecorator>
+		);
+	}, [selectedId, adjustQuantity, confirmDeleteColor]);
 
 	if (isLoading) {
 		return (
@@ -163,131 +278,118 @@ export default function HomeScreen() {
 	}
 
 	return (
-		<ParallaxScrollView
-			headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-			headerImage={
-				<Image
-					source={require("@/assets/images/palot.png")}
-					style={styles.reactLogo}
-				/>
-			}
-		>
-			<ThemedView style={styles.titleContainer}>
-				<ThemedText type="title">Stock</ThemedText>
-				<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
-					<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
-				</TouchableOpacity>
-			</ThemedView>
-
-			{error && (
-				<ThemedView style={styles.errorContainer}>
-					<ThemedText style={styles.errorText}>{error}</ThemedText>
-					<TouchableOpacity onPress={reloadData} style={styles.retryButton}>
-						<ThemedText style={styles.retryButtonText}>Reintentar</ThemedText>
-					</TouchableOpacity>
-				</ThemedView>
-			)}
-
-			<ThemedView style={styles.colorContainer}>
-				<View style={styles.headerContainer}>
-					<ThemedText type="subtitle" style={styles.subtitle}>
-						Inventario de colores
-					</ThemedText>
-					<TouchableOpacity
-						style={styles.addButton}
-						onPress={() => setShowForm(!showForm)}
-					>
-						<ThemedText style={styles.addButtonText}>
-							{showForm ? "✕" : "+"}
-						</ThemedText>
-					</TouchableOpacity>
+		<GestureHandlerRootView style={{ flex: 1 }}>
+			<View style={styles.container}>
+				{/* Cabecera */}
+				<View style={styles.header}>
+					<Image
+						source={require("@/assets/images/palot.png")}
+						style={styles.reactLogo}
+					/>
 				</View>
+				
+				{/* Contenido */}
+				<View style={styles.content}>
+					<ThemedView style={styles.titleContainer}>
+						<ThemedText type="title">Stock</ThemedText>
+						<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
+							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
+						</TouchableOpacity>
+					</ThemedView>
 
-				{showForm && (
-					<ThemedView style={styles.formContainer}>
-						<TextInput
-							style={styles.input}
-							placeholder="Nombre del color"
-							value={newColorName}
-							onChangeText={setNewColorName}
-							placeholderTextColor="#888"
-						/>
-						<TextInput
-							style={styles.input}
-							placeholder="Cantidad (opcional)"
-							value={newColorQuantity}
-							onChangeText={setNewColorQuantity}
-							keyboardType="numeric"
-							placeholderTextColor="#888"
-						/>
-						<TouchableOpacity style={styles.submitButton} onPress={addColor}>
-							<ThemedText style={styles.submitButtonText}>
-								Agregar Color
+					{error && (
+						<ThemedView style={styles.errorContainer}>
+							<ThemedText style={styles.errorText}>{error}</ThemedText>
+							<TouchableOpacity onPress={reloadData} style={styles.retryButton}>
+								<ThemedText style={styles.retryButtonText}>Reintentar</ThemedText>
+							</TouchableOpacity>
+						</ThemedView>
+					)}
+
+					<ThemedView style={styles.colorContainer}>
+						<View style={styles.headerContainer}>
+							<ThemedText type="subtitle" style={styles.subtitle}>
+								Inventario de colores
 							</ThemedText>
-						</TouchableOpacity>
-					</ThemedView>
-				)}
+							<TouchableOpacity
+								style={styles.addButton}
+								onPress={() => setShowForm(!showForm)}
+							>
+								<ThemedText style={styles.addButtonText}>
+									{showForm ? "✕" : "+"}
+								</ThemedText>
+							</TouchableOpacity>
+						</View>
 
-				{inventory.length === 0 ? (
-					<ThemedView style={styles.emptyContainer}>
-						<ThemedText style={styles.emptyText}>
-							No hay colores en el inventario
-						</ThemedText>
-					</ThemedView>
-				) : (
-					inventory.map((color) => (
-						<TouchableOpacity
-							key={color.id}
-							onPress={() =>
-								setSelectedId(selectedId === color.id ? null : color.id)
-							}
-							onLongPress={() => confirmDeleteColor(color)}
-						>
-							<ThemedView style={styles.colorRow}>
-								<ThemedText style={styles.colorName}>{color.name}</ThemedText>
-								<View style={styles.quantityContainer}>
-									{selectedId === color.id ? (
-										<>
-											<TouchableOpacity
-												style={styles.button}
-												onPress={() => adjustQuantity(color.id, -1)}
-											>
-												<ThemedText style={styles.buttonText}>-</ThemedText>
-											</TouchableOpacity>
-
-											<ThemedText style={styles.quantity}>
-												{color.quantity}
-											</ThemedText>
-
-											<TouchableOpacity
-												style={styles.button}
-												onPress={() => adjustQuantity(color.id, 1)}
-											>
-												<ThemedText style={styles.buttonText}>+</ThemedText>
-											</TouchableOpacity>
-										</>
-									) : (
-										<ThemedText style={styles.quantity}>
-											{color.quantity}
-										</ThemedText>
-									)}
-								</View>
+						{showForm && (
+							<ThemedView style={styles.formContainer}>
+								<TextInput
+									style={styles.input}
+									placeholder="Nombre del color"
+									value={newColorName}
+									onChangeText={setNewColorName}
+									placeholderTextColor="#888"
+								/>
+								<TextInput
+									style={styles.input}
+									placeholder="Cantidad (opcional)"
+									value={newColorQuantity}
+									onChangeText={setNewColorQuantity}
+									keyboardType="numeric"
+									placeholderTextColor="#888"
+								/>
+								<TouchableOpacity style={styles.submitButton} onPress={addColor}>
+									<ThemedText style={styles.submitButtonText}>
+										Agregar Color
+									</ThemedText>
+								</TouchableOpacity>
 							</ThemedView>
-						</TouchableOpacity>
-					))
-				)}
+						)}
 
-				{inventory.length > 0 && (
-					<ThemedText style={styles.helpText}>
-						Mantener presionado un color para eliminarlo
-					</ThemedText>
-				)}
-			</ThemedView>
-		</ParallaxScrollView>
+						{inventory.length === 0 ? (
+							<ThemedView style={styles.emptyContainer}>
+								<ThemedText style={styles.emptyText}>
+									No hay colores en el inventario
+								</ThemedText>
+							</ThemedView>
+						) : (
+							<DraggableFlatList
+								data={inventory}
+								onDragEnd={handleDragEnd}
+								keyExtractor={(item) => item.id}
+								renderItem={renderItem}
+								contentContainerStyle={styles.flatListContent}
+								ListFooterComponent={<View style={styles.listFooter} />}
+							/>
+						)}
+
+						{inventory.length > 0 && (
+							<ThemedText style={styles.helpText}>
+								Mantener presionado un color para arrastrarlo y reordenarlo
+							</ThemedText>
+						)}
+					</ThemedView>
+				</View>
+			</View>
+		</GestureHandlerRootView>
 	);
 }
 
 const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+	},
+	header: {
+		backgroundColor: "#A1CEDC",
+		height: 150,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	content: {
+		flex: 1,
+		paddingHorizontal: 6,
+		paddingTop: 10,
+	},
 	titleContainer: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -302,6 +404,7 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		marginVertical: 0,
 		marginHorizontal: 6,
+		flex: 1,
 	},
 	subtitle: {
 		marginBottom: 16,
@@ -318,6 +421,9 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: "rgba(161, 206, 220, 0.2)",
 		backgroundColor: "rgba(161, 206, 220, 0.05)",
+	},
+	colorNameContainer: {
+		flex: 1,
 	},
 	colorName: {
 		fontSize: 20,
@@ -350,10 +456,6 @@ const styles = StyleSheet.create({
 		width: "60%",
 		height: "80%",
 		resizeMode: "contain",
-		position: "absolute",
-		top: "50%",
-		left: "50%",
-		transform: [{ translateX: -120 }, { translateY: -50 }],
 	},
 	loadingContainer: {
 		flex: 1,
@@ -397,27 +499,17 @@ const styles = StyleSheet.create({
 		fontSize: 20,
 		fontWeight: "bold",
 	},
-	emptyContainer: {
-		padding: 20,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	emptyText: {
-		fontSize: 16,
-		fontStyle: "italic",
-		opacity: 0.7,
-	},
 	headerContainer: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		marginBottom: 16,
+		marginBottom: 12,
 	},
 	addButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "rgba(161, 206, 220, 0.3)",
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		backgroundColor: "rgba(161, 206, 220, 0.2)",
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -426,33 +518,82 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 	},
 	formContainer: {
-		backgroundColor: "rgba(161, 206, 220, 0.1)",
+		backgroundColor: "rgba(161, 206, 220, 0.05)",
 		padding: 16,
-		borderRadius: 8,
+		borderRadius: 12,
 		marginBottom: 16,
+		borderWidth: 1,
+		borderColor: "rgba(161, 206, 220, 0.2)",
 	},
 	input: {
-		backgroundColor: "rgba(255, 255, 255, 0.8)",
+		backgroundColor: "#fff",
 		padding: 12,
-		borderRadius: 8,
+		borderRadius: 6,
 		marginBottom: 12,
 		fontSize: 16,
+		borderWidth: 1,
+		borderColor: "rgba(161, 206, 220, 0.3)",
+		color: "#333",
 	},
 	submitButton: {
-		backgroundColor: "rgba(161, 206, 220, 0.5)",
+		backgroundColor: "#A1CEDC",
 		padding: 12,
-		borderRadius: 8,
+		borderRadius: 6,
 		alignItems: "center",
 	},
 	submitButtonText: {
-		fontSize: 16,
+		color: "#fff",
 		fontWeight: "bold",
+		fontSize: 16,
+	},
+	emptyContainer: {
+		padding: 24,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	emptyText: {
+		fontSize: 16,
+		textAlign: "center",
+		opacity: 0.6,
 	},
 	helpText: {
 		textAlign: "center",
-		fontSize: 14,
-		fontStyle: "italic",
-		opacity: 0.7,
 		marginTop: 16,
+		fontSize: 14,
+		opacity: 0.7,
+		fontStyle: "italic",
+	},
+	dragHandle: {
+		marginRight: 12,
+		padding: 5,
+	},
+	dragHandleText: {
+		fontSize: 24,
+		opacity: 0.5,
+	},
+	deleteAction: {
+		backgroundColor: "#FF6B6B",
+		justifyContent: "center",
+		alignItems: "center",
+		width: 100,
+		height: "100%",
+		borderTopRightRadius: 12,
+		borderBottomRightRadius: 12,
+	},
+	deleteActionContent: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	deleteActionText: {
+		color: "white",
+		fontWeight: "bold",
+		fontSize: 16,
+	},
+	flatListContent: {
+		paddingBottom: 16,
+	},
+	listFooter: {
+		height: 80, // Espacio adicional al final de la lista
 	},
 });

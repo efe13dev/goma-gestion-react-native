@@ -104,3 +104,17 @@ export const deleteColor = async (colorName: string): Promise<void> => {
     throw error;
   }
 };
+
+// Update the order of colors
+export const updateColorOrder = async (colors: RubberColor[]): Promise<void> => {
+  try {
+    // Como la API actual no tiene un endpoint específico para actualizar el orden,
+    // vamos a simular esto actualizando cada color individualmente
+    for (const color of colors) {
+      await updateColor(color);
+    }
+  } catch (error) {
+    console.error('Error updating color order:', error);
+    throw error;
+  }
+};

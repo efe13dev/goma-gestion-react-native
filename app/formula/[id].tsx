@@ -349,7 +349,7 @@ export default function FormulaScreen() {
                 <TouchableOpacity onPress={() => iniciarEdicion(index)}>
                   <ThemedView style={styles.ingredienteRow}>
                     <ThemedText style={styles.ingredienteNombre}>
-                      {ingrediente.nombre}
+                      {ingrediente.nombre.charAt(0).toUpperCase() + ingrediente.nombre.slice(1)}
                     </ThemedText>
                     <ThemedText style={styles.cantidad}>
                       {ingrediente.cantidad} {ingrediente.unidad}
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   unidadButtonTextSelected: {
-    color: '#fff',
+    color: '#333',
     fontWeight: 'bold',
   },
   accionesContainer: {
