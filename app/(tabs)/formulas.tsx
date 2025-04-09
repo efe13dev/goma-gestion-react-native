@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Image, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { StyleSheet, Image, TouchableOpacity, Alert, ActivityIndicator, View } from "react-native";
 import { Link, router } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -93,21 +93,25 @@ export default function FormulasScreen() {
 	return (
 		<>
 			<ParallaxScrollView
-				headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
+				headerBackgroundColor={{ light: "#A1CEDC", dark: "#A1CEDC" }}
+				headerHeight={180}
 				headerImage={
-					<Image
-						source={require("@/assets/images/palot.png")}
-						style={styles.reactLogo}
-					/>
+					<View style={styles.headerContentContainer}>
+						<View style={styles.imageContainer}>
+							<Image
+								source={require("@/assets/images/chemical.png")}
+								style={styles.reactLogo}
+							/>
+						</View>
+						<View style={styles.headerTitleContainer}>
+							<ThemedText type="title" style={styles.headerTitleText}>Fórmulas</ThemedText>
+							<TouchableOpacity onPress={loadFormulas} style={styles.headerReloadButton}>
+								<ThemedText style={styles.headerReloadButtonText}>↻</ThemedText>
+							</TouchableOpacity>
+						</View>
+					</View>
 				}
 			>
-				<ThemedView style={styles.titleContainer}>
-					<ThemedText type="title">Fórmulas</ThemedText>
-					<TouchableOpacity onPress={loadFormulas} style={styles.reloadButton}>
-						<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
-					</TouchableOpacity>
-				</ThemedView>
-
 				{error && (
 					<ThemedView style={styles.errorContainer}>
 						<ThemedText style={styles.errorText}>{error}</ThemedText>
@@ -213,26 +217,58 @@ const styles = StyleSheet.create({
 		opacity: 0.7,
 		fontStyle: 'italic',
 	},
-	titleContainer: {
+	headerContentContainer: {
+		flex: 1,
+		flexDirection: 'column',
+		justifyContent: 'flex-end',
+		alignItems: 'center',
+		width: '100%',
+		height: '100%',
+		paddingVertical: 5,
+	},
+	imageContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		width: '100%',
+		marginBottom: -15,
+	},
+	reactLogo: {
+		width: "80%",
+		height: "90%",
+		resizeMode: "contain",
+	},
+	headerTitleContainer: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 8,
-		marginTop: -20,
-		marginBottom: 12,
+		width: "100%",
+		paddingBottom: 10,
 	},
-	reloadButton: {
-		width: 32,
-		height: 32,
-		borderRadius: 16,
-		backgroundColor: 'rgba(161, 206, 220, 0.2)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		marginLeft: 8,
+	headerTitleText: {
+		fontSize: 28,
+		fontWeight: "bold",
+		color: "white",
+		textShadowColor: 'rgba(0, 0, 0, 0.2)',
+		textShadowOffset: { width: 1, height: 1 },
+		textShadowRadius: 2,
+		marginRight: 15,
 	},
-	reloadButtonText: {
-		fontSize: 18,
-		fontWeight: 'bold',
+	headerReloadButton: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: "rgba(255, 255, 255, 0.3)",
+		justifyContent: "center",
+		alignItems: "center",
+		borderWidth: 1,
+		borderColor: "rgba(255, 255, 255, 0.5)",
+	},
+	headerReloadButtonText: {
+		fontSize: 22,
+		fontWeight: "bold",
+		color: "white",
 	},
 	formulasContainer: {
 		padding: 12,
@@ -253,16 +289,6 @@ const styles = StyleSheet.create({
 	colorName: {
 		fontSize: 20,
 		fontWeight: "500",
-	},
-	reactLogo: {
-		width: "50%",
-		height: "70%",
-		resizeMode: "contain",
-		position: "absolute",
-		top: "45%",
-		left: "50%",
-		transform: [{ translateX: -100 }, { translateY: -40 }],
-		opacity: 0.9,
 	},
 	fab: {
 		position: "absolute",

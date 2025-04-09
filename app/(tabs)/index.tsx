@@ -453,11 +453,11 @@ const styles = StyleSheet.create({
 	header: {
 		backgroundColor: "#A1CEDC",
 		height: 180,
-		justifyContent: "space-evenly", // Distribuir el espacio uniformemente
+		justifyContent: "flex-end", 
 		alignItems: "center",
 		borderBottomLeftRadius: 0,
 		borderBottomRightRadius: 0,
-		paddingBottom: 10, // Añadir un poco de padding abajo
+		paddingBottom: 5, 
 	},
 	content: {
 		flex: 1,
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
 	titleContainer: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "center", // Centrar horizontalmente
+		justifyContent: "center", 
 		width: "100%",
 		paddingHorizontal: 20,
 	},
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
 		textShadowColor: 'rgba(0, 0, 0, 0.2)',
 		textShadowOffset: { width: 1, height: 1 },
 		textShadowRadius: 2,
-		marginRight: 15, // Espacio entre el título y el botón
+		marginRight: 15, 
 	},
 	colorContainer: {
 		padding: 12,
@@ -535,9 +535,10 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 	reactLogo: {
-		width: "60%",
-		height: "80%",
+		width: "80%",
+		height: "70%",
 		resizeMode: "contain",
+		marginBottom: -10, 
 	},
 	loadingContainer: {
 		flex: 1,
@@ -678,6 +679,6 @@ const styles = StyleSheet.create({
 		paddingBottom: 16,
 	},
 	listFooter: {
-		height: 80, // Espacio adicional al final de la lista
+		height: 80, 
 	},
 });
