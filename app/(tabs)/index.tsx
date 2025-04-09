@@ -54,7 +54,7 @@ export default function HomeScreen() {
 			if (savedOrder.length > 0) {
 				// Guardamos el orden en el estado
 				setColorOrder(savedOrder);
-				
+
 				// Primero ordenamos los colores que ya conocemos
 				const orderedColors = [...data].sort((a, b) => {
 					const indexA = savedOrder.indexOf(a.id);
@@ -85,7 +85,7 @@ export default function HomeScreen() {
 			}
 		} catch (err) {
 			setError(
-				"No se pudo cargar el inventario. Verifique su conexión e intente nuevamente."
+				"No se pudo cargar el inventario. Verifique su conexión e intente nuevamente.",
 			);
 			console.error("Error loading data:", err);
 		} finally {
@@ -354,7 +354,9 @@ export default function HomeScreen() {
 						style={styles.reactLogo}
 					/>
 					<View style={styles.titleContainer}>
-						<ThemedText type="title" style={styles.titleText}>Stock</ThemedText>
+						<ThemedText type="title" style={styles.titleText}>
+							Stock
+						</ThemedText>
 						<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
 							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
 						</TouchableOpacity>
@@ -453,11 +455,11 @@ const styles = StyleSheet.create({
 	header: {
 		backgroundColor: "#A1CEDC",
 		height: 180,
-		justifyContent: "flex-end", 
+		justifyContent: "flex-end",
 		alignItems: "center",
 		borderBottomLeftRadius: 0,
 		borderBottomRightRadius: 0,
-		paddingBottom: 5, 
+		paddingBottom: 5,
 	},
 	content: {
 		flex: 1,
@@ -467,7 +469,7 @@ const styles = StyleSheet.create({
 	titleContainer: {
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "center", 
+		justifyContent: "center",
 		width: "100%",
 		paddingHorizontal: 20,
 	},
@@ -475,10 +477,10 @@ const styles = StyleSheet.create({
 		fontSize: 28,
 		fontWeight: "bold",
 		color: "white",
-		textShadowColor: 'rgba(0, 0, 0, 0.2)',
+		textShadowColor: "rgba(0, 0, 0, 0.2)",
 		textShadowOffset: { width: 1, height: 1 },
 		textShadowRadius: 2,
-		marginRight: 15, 
+		marginRight: 15,
 	},
 	colorContainer: {
 		padding: 12,
@@ -538,7 +540,7 @@ const styles = StyleSheet.create({
 		width: "80%",
 		height: "70%",
 		resizeMode: "contain",
-		marginBottom: -10, 
+		marginBottom: -10,
 	},
 	loadingContainer: {
 		flex: 1,
@@ -597,6 +599,8 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(161, 206, 220, 0.2)",
 		justifyContent: "center",
 		alignItems: "center",
+		alignSelf: "center",
+		marginTop: -10,
 	},
 	addButtonText: {
 		fontSize: 24,
@@ -679,6 +683,6 @@ const styles = StyleSheet.create({
 		paddingBottom: 16,
 	},
 	listFooter: {
-		height: 80, 
+		height: 80,
 	},
 });
