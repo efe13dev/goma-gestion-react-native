@@ -12,17 +12,7 @@ module.exports = (api) => {
           },
         },
       ],
-      [
-        'module:react-native-dotenv',
-        {
-          moduleName: '@env',
-          path: '.env',
-          blacklist: null,
-          whitelist: null,
-          safe: false,
-          allowUndefined: true,
-        },
-      ],
+      // Se ha eliminado el plugin 'module:react-native-dotenv' que estaba causando problemas
     ],
   };
 };
