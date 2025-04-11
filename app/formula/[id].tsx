@@ -313,14 +313,14 @@ export default function FormulaScreen() {
         headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
         headerHeight={100}
         withNavHeader={true}
-        headerImage={<View style={{ display: 'none' }} />}
+        headerImage={
+          <View style={styles.headerTitleContainer}>
+            <ThemedText type="title" style={styles.headerTitle}>
+              {formula.nombreColor.charAt(0).toUpperCase() + formula.nombreColor.slice(1)}
+            </ThemedText>
+          </View>
+        }
       >
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title" style={styles.title}>
-            {formula.nombreColor}
-          </ThemedText>
-        </ThemedView>
-
         <ThemedView style={styles.ingredientesContainer}>
           <ThemedText type="subtitle" style={styles.subtitle}>
             Ingredientes:
@@ -561,16 +561,19 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     opacity: 0.7,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerTitleContainer: {
+    flex: 1,
     justifyContent: 'center',
-    gap: 8,
-    marginTop: -20,
-    marginBottom: 12,
+    alignItems: 'center',
   },
-  title: {
+  headerTitle: {
     textAlign: 'center',
+    color: 'white',
+    fontSize: 30,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   ingredientesContainer: {
     backgroundColor: 'rgba(161, 206, 220, 0.1)',
