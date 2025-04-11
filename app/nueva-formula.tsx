@@ -218,31 +218,37 @@ export default function NuevaFormulaScreen() {
             <ThemedText type="subtitle" style={styles.subtitle}>
               Ingredientes:
             </ThemedText>
-
-            {ingredientes.map((ingrediente, index) => (
-              <ThemedView key={`${ingrediente.nombre}-${index}`} style={styles.ingredienteItem}>
-                <ThemedView style={styles.ingredienteInfo}>
-                  <ThemedText style={styles.ingredienteNombre}>{ingrediente.nombre}</ThemedText>
-                  <ThemedText style={styles.ingredienteCantidad}>
-                    {ingrediente.cantidad} {ingrediente.unidad}
-                  </ThemedText>
+            
+            <ScrollView 
+              style={styles.ingredientesScrollView}
+              nestedScrollEnabled={true}
+              contentContainerStyle={styles.ingredientesScrollContent}
+            >
+              {ingredientes.map((ingrediente, index) => (
+                <ThemedView key={`${ingrediente.nombre}-${index}`} style={styles.ingredienteItem}>
+                  <ThemedView style={styles.ingredienteInfo}>
+                    <ThemedText style={styles.ingredienteNombre}>{ingrediente.nombre}</ThemedText>
+                    <ThemedText style={styles.ingredienteCantidad}>
+                      {ingrediente.cantidad} {ingrediente.unidad}
+                    </ThemedText>
+                  </ThemedView>
+                  <ThemedView style={styles.ingredienteAcciones}>
+                    <TouchableOpacity
+                      style={styles.accionBoton}
+                      onPress={() => iniciarEdicion(index)}
+                    >
+                      <Ionicons name="pencil" size={20} color="#A1CEDC" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.accionBoton}
+                      onPress={() => eliminarIngrediente(index)}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                    </TouchableOpacity>
+                  </ThemedView>
                 </ThemedView>
-                <ThemedView style={styles.ingredienteAcciones}>
-                  <TouchableOpacity
-                    style={styles.accionBoton}
-                    onPress={() => iniciarEdicion(index)}
-                  >
-                    <Ionicons name="pencil" size={20} color="#A1CEDC" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.accionBoton}
-                    onPress={() => eliminarIngrediente(index)}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-                  </TouchableOpacity>
-                </ThemedView>
-              </ThemedView>
-            ))}
+              ))}
+            </ScrollView>
 
             <TouchableOpacity
               style={styles.botonAgregar}
@@ -580,5 +586,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  ingredientesScrollView: {
+    maxHeight: 300,
+    borderWidth: 1,
+    borderColor: 'rgba(161, 206, 220, 0.3)',
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  ingredientesScrollContent: {
+    paddingVertical: 12,
   },
 });

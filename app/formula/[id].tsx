@@ -311,14 +311,9 @@ export default function FormulaScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ParallaxScrollView
         headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-        headerHeight={140}
+        headerHeight={100}
         withNavHeader={true}
-        headerImage={
-          <Image
-            source={require('@/assets/images/palot.png')}
-            style={styles.reactLogo}
-          />
-        }
+        headerImage={<View style={{ display: 'none' }} />}
       >
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="title" style={styles.title}>
@@ -610,16 +605,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     minWidth: 36,
     textAlign: 'right',
-  },
-  reactLogo: {
-    width: '50%',
-    height: '70%',
-    resizeMode: 'contain',
-    position: 'absolute',
-    top: '45%',
-    left: '50%',
-    transform: [{ translateX: -100 }, { translateY: -40 }],
-    opacity: 0.9,
   },
   formularioContainer: {
     marginTop: 16,

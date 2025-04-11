@@ -17,24 +17,57 @@ interface IngredientAPI {
 }
 
 // Function to convert from API format to local format
-const mapApiToLocal = (apiFormula: FormulaAPI): Formula => ({
-  id: apiFormula.name.toLowerCase().replace(/\s+/g, '-'),
-  nombreColor: apiFormula.name,
-  ingredientes: apiFormula.ingredients.map(ing => ({
-    nombre: ing.name,
-    cantidad: ing.quantity,
-    unidad: 'gr' // Valor por defecto ya que la API no maneja unidades
-  }))
-});
+const mapApiToLocal = (apiFormula: FormulaAPI): Formula => {
+  return {
+    id: apiFormula.name.toLowerCase().replace(/\s+/g, '-'),
+    nombreColor: apiFormula.name,
+    ingredientes: apiFormula.ingredients.map(ing => {
+      // Extraer la unidad del nombre si existe (mejorado para capturar L correctamente)
+      const match = ing.name.match(/\[(gr|kg|L)\]$/i);
+      let nombre = ing.name;
+      let unidad = 'gr'; // Valor por defecto
+      
+      if (match) {
+        // Si hay una unidad en el nombre, extraerla
+        unidad = match[1];
+        // Asegurarnos de que L siempre es mayúscula
+        if (unidad.toLowerCase() === 'l') unidad = 'L';
+        nombre = ing.name.replace(/\s*\[(gr|kg|L)\]$/i, '');
+      }
+      
+      console.log(`Ingrediente: ${nombre}, Unidad: ${unidad}, Original: ${ing.name}`);
+      
+      return {
+        nombre,
+        cantidad: ing.quantity,
+        unidad
+      };
+    })
+  };
+};
 
 // Function to convert from local format to API format
-const mapLocalToApi = (localFormula: Formula): FormulaAPI => ({
-  name: localFormula.nombreColor,
-  ingredients: localFormula.ingredientes.map(ing => ({
-    name: ing.nombre,
-    quantity: ing.cantidad
-  }))
-});
+const mapLocalToApi = (localFormula: Formula): FormulaAPI => {
+  return {
+    name: localFormula.nombreColor,
+    ingredients: localFormula.ingredientes.map(ing => {
+      // Asegurarnos de que la unidad sea correcta
+      let unidad = ing.unidad;
+      // Asegurarnos de que L siempre es mayúscula
+      if (unidad.toLowerCase() === 'l') unidad = 'L';
+      
+      // Incluir la unidad en el nombre del ingrediente
+      const nameWithUnit = `${ing.nombre} [${unidad}]`;
+      
+      console.log(`Guardando: ${nameWithUnit}, Cantidad: ${ing.cantidad}, Unidad original: ${ing.unidad}`);
+      
+      return {
+        name: nameWithUnit,
+        quantity: ing.cantidad
+      };
+    })
+  };
+};
 
 // Get all formulas
 export const getFormulas = async (): Promise<Formula[]> => {
