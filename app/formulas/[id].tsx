@@ -65,19 +65,16 @@ export default function FormulaDetailScreen() {
   let ingredientsContent: JSX.Element | JSX.Element[];
   if (formula.ingredientes && formula.ingredientes.length > 0) {
     ingredientsContent = 
-        formula.ingredientes.map((ingredient: Ingrediente, index: number) => {
-          // Log the ingredient object to check its structure and values
-          console.log(`Rendering ingredient ${index}:`, JSON.stringify(ingredient));
-
-          const name = ingredient.nombre || 'Nombre no disponible';
-          const quantity = ingredient.cantidad !== null && ingredient.cantidad !== undefined ? ingredient.cantidad : '-';
-          const unit = ingredient.unidad || '';
+        formula.ingredientes.map((ingrediente: Ingrediente, index: number) => {
+          const name = ingrediente.nombre || 'Nombre no disponible';
+          const quantity = ingrediente.cantidad !== null && ingrediente.cantidad !== undefined ? ingrediente.cantidad : '-';
+          const unit = ingrediente.unidad || '';
 
           return (
             // Usar el id de la fórmula (si existe) y el índice para una clave más única
             <ThemedView key={`${formula?.id || 'formula'}-${index}`} style={styles.ingredientContainer}>
-              <ThemedText style={styles.ingredientText}>{name}:</ThemedText>
-              <ThemedText style={styles.ingredientText}>{quantity} {unit}</ThemedText>
+              <ThemedText style={styles.ingredientName}>{name}</ThemedText>
+              <ThemedText style={styles.ingredientQuantity}>{quantity} {unit}</ThemedText>
             </ThemedView>
           );
         });
@@ -94,6 +91,10 @@ export default function FormulaDetailScreen() {
   );
 }
 
+FormulaDetailScreen.options = {
+  headerBackTitle: 'Volver'
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -108,24 +109,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginTop: 15,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   ingredientContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    marginVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "#2C3E50",
   },
-  ingredientText: {
-    fontSize: 16,
+  ingredientName: {
+    color: "white",
+    fontSize: 18,
   },
-   errorText: {
+  ingredientQuantity: {
+    color: "#A1CEDC",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  errorText: {
     color: 'red',
     textAlign: 'center',
   },

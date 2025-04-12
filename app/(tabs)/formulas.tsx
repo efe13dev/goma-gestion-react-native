@@ -139,7 +139,7 @@ export default function FormulasScreen() {
 							>
 								<View style={styles.formulaColorContainer}>
 									<ThemedText style={styles.formulaColor}>
-										{item.nombreColor}
+										{item.nombreColor.charAt(0).toUpperCase() + item.nombreColor.slice(1)}
 									</ThemedText>
 								</View>
 								<Ionicons
@@ -255,8 +255,10 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "center",
 		padding: 15,
-		marginVertical: 8,
-		borderRadius: 8,
+		marginVertical: 6,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: "rgba(161, 206, 220, 0.3)",
 		shadowColor: "#000",
 		shadowOffset: {
 			width: 0,

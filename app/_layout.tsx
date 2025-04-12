@@ -9,10 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native";
-import Toast from "react-native-toast-message";
-
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { cargarFormulas } from "@/data/formulas";
 
