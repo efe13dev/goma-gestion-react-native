@@ -52,6 +52,7 @@ export default function NuevaFormulaScreen() {
 
 	// Función para mostrar el formulario para añadir un nuevo ingrediente
 	const mostrarFormularioAgregar = () => {
+		console.log("Botón añadir ingrediente presionado");
 		setIngredienteNombre("");
 		setIngredienteCantidad("");
 		setIngredienteUnidad("gr");
@@ -198,253 +199,244 @@ export default function NuevaFormulaScreen() {
 	};
 
 	return (
-		<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : undefined}
-				style={{ flex: 1 }}
-				keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+		<KeyboardAvoidingView
+			behavior={Platform.OS === "ios" ? "padding" : undefined}
+			style={{ flex: 1 }}
+			keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+		>
+			{isLoading && (
+				<View style={styles.loadingOverlay}>
+					<ActivityIndicator size="large" color="#A1CEDC" />
+					<ThemedText style={styles.loadingText}>
+						Guardando fórmula...
+					</ThemedText>
+				</View>
+			)}
+
+			<ScrollView
+				style={styles.container}
+				keyboardShouldPersistTaps="always"
 			>
-				{isLoading && (
-					<View style={styles.loadingOverlay}>
-						<ActivityIndicator size="large" color="#A1CEDC" />
-						<ThemedText style={styles.loadingText}>
-							Guardando fórmula...
-						</ThemedText>
-					</View>
-				)}
+				<ThemedView style={styles.header}>
+					<ThemedText type="title" style={styles.title}>
+						Nueva Fórmula
+					</ThemedText>
+				</ThemedView>
 
-				<ScrollView
-					style={styles.container}
-					keyboardShouldPersistTaps="handled"
-				>
-					<ThemedView style={styles.header}>
-						<ThemedText type="title" style={styles.title}>
-							Nueva Fórmula
-						</ThemedText>
-					</ThemedView>
+				<ThemedView style={styles.formContainer}>
+					<ThemedText style={styles.label}>Nombre del Color:</ThemedText>
+					<TextInput
+						ref={nombreColorRef}
+						style={[styles.input, { color: textColor }]}
+						value={nombreColor}
+						onChangeText={setNombreColor}
+						placeholder="Nombre del color"
+						placeholderTextColor="rgba(150, 150, 150, 0.8)"
+						editable={true}
+						autoCapitalize="sentences"
+					/>
+				</ThemedView>
 
-					<ThemedView style={styles.formContainer}>
-						<ThemedText style={styles.label}>Nombre del Color:</ThemedText>
-						<TextInput
-							ref={nombreColorRef}
-							style={[styles.input, { color: textColor }]}
-							value={nombreColor}
-							onChangeText={setNombreColor}
-							placeholder="Nombre del color"
-							placeholderTextColor="rgba(150, 150, 150, 0.8)"
-							editable={true}
-							autoCapitalize="sentences"
-							blurOnSubmit={false}
-							caretHidden={false}
-						/>
-					</ThemedView>
+				<ThemedView style={styles.ingredientesContainer}>
+					<ThemedText type="subtitle" style={styles.subtitle}>
+						Ingredientes:
+					</ThemedText>
 
-					<ThemedView style={styles.ingredientesContainer}>
-						<ThemedText type="subtitle" style={styles.subtitle}>
-							Ingredientes:
-						</ThemedText>
-
-						<ScrollView
-							style={styles.ingredientesScrollView}
-							nestedScrollEnabled={true}
-							contentContainerStyle={styles.ingredientesScrollContent}
-						>
-							{ingredientes.map((ingrediente, index) => (
-								<ThemedView
-									key={`${ingrediente.nombre}-${index}`}
-									style={styles.ingredienteItem}
-								>
-									<ThemedView style={styles.ingredienteInfo}>
-										<ThemedText style={styles.ingredienteNombre}>
-											{ingrediente.nombre}
-										</ThemedText>
-										<ThemedText style={styles.ingredienteCantidad}>
-											{ingrediente.cantidad} {ingrediente.unidad}
-										</ThemedText>
-									</ThemedView>
-									<ThemedView style={styles.ingredienteAcciones}>
-										<TouchableOpacity
-											style={styles.accionBoton}
-											onPress={() => iniciarEdicion(index)}
-										>
-											<Ionicons name="pencil" size={20} color="#A1CEDC" />
-										</TouchableOpacity>
-										<TouchableOpacity
-											style={styles.accionBoton}
-											onPress={() => eliminarIngrediente(index)}
-										>
-											<Ionicons
-												name="trash-outline"
-												size={20}
-												color="#FF6B6B"
-											/>
-										</TouchableOpacity>
-									</ThemedView>
-								</ThemedView>
-							))}
-						</ScrollView>
-
-						<TouchableOpacity
-							style={styles.botonAgregar}
-							onPress={mostrarFormularioAgregar}
-						>
-							<Ionicons name="add-circle" size={24} color="#A1CEDC" />
-							<ThemedText style={styles.botonAgregarTexto}>
-								Añadir ingrediente
-							</ThemedText>
-						</TouchableOpacity>
-					</ThemedView>
-
-					<ThemedView style={styles.botonesContainer}>
-						<TouchableOpacity
-							style={[styles.boton, styles.botonCancelar]}
-							onPress={() => router.back()}
-						>
-							<ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={[styles.boton, styles.botonGuardar]}
-							onPress={guardarFormula}
-						>
-							<ThemedText style={styles.botonTexto}>Guardar</ThemedText>
-						</TouchableOpacity>
-					</ThemedView>
-				</ScrollView>
-
-				{/* Modal para añadir o editar ingredientes */}
-				<Modal
-					visible={mostrarFormulario}
-					transparent={true}
-					animationType="fade"
-					onRequestClose={cancelarFormulario}
-				>
-					<TouchableWithoutFeedback
-						onPress={Keyboard.dismiss}
-						accessible={false}
+					<ScrollView
+						style={styles.ingredientesScrollView}
+						nestedScrollEnabled={true}
+						contentContainerStyle={styles.ingredientesScrollContent}
 					>
-						<View style={styles.modalOverlay}>
-							<ThemedView style={[styles.modalContainer, { backgroundColor }]}>
-								<ThemedText type="subtitle" style={styles.subtitleForm}>
-									{editandoIndex !== null
-										? "Editar Ingrediente"
-										: "Añadir Ingrediente"}
-								</ThemedText>
-
-								<ThemedView style={styles.inputRow}>
-									<ThemedText style={styles.label}>Nombre:</ThemedText>
-									<TextInput
-										ref={ingredienteNombreRef}
-										style={[styles.input, { color: textColor }]}
-										value={ingredienteNombre}
-										onChangeText={setIngredienteNombre}
-										placeholder="Nombre del ingrediente"
-										placeholderTextColor="rgba(150, 150, 150, 0.8)"
-										editable={true}
-										autoCapitalize="sentences"
-									/>
+						{ingredientes.map((ingrediente, index) => (
+							<ThemedView
+								key={`${ingrediente.nombre}-${index}`}
+								style={styles.ingredienteItem}
+							>
+								<ThemedView style={styles.ingredienteInfo}>
+									<ThemedText style={styles.ingredienteNombre}>
+										{ingrediente.nombre}
+									</ThemedText>
+									<ThemedText style={styles.ingredienteCantidad}>
+										{ingrediente.cantidad} {ingrediente.unidad}
+									</ThemedText>
 								</ThemedView>
-
-								<ThemedView style={styles.inputRow}>
-									<ThemedText style={styles.label}>Cantidad:</ThemedText>
-									<TextInput
-										ref={ingredienteCantidadRef}
-										style={[styles.input, { color: textColor }]}
-										value={ingredienteCantidad}
-										onChangeText={setIngredienteCantidad}
-										placeholder="Cantidad"
-										keyboardType="numeric"
-										placeholderTextColor="rgba(150, 150, 150, 0.8)"
-										editable={true}
-									/>
-								</ThemedView>
-
-								<ThemedView style={styles.inputRow}>
-									<ThemedText style={styles.label}>Unidad:</ThemedText>
-									<ThemedView style={styles.unidadSelectorContainer}>
-										<TouchableOpacity
-											style={[
-												styles.unidadButton,
-												ingredienteUnidad === "gr" &&
-													styles.unidadButtonSelected,
-											]}
-											onPress={() => setIngredienteUnidad("gr")}
-										>
-											<ThemedText
-												style={[
-													styles.unidadButtonText,
-													ingredienteUnidad === "gr" &&
-														styles.unidadButtonTextSelected,
-													{ color: textColor },
-												]}
-											>
-												gr
-											</ThemedText>
-										</TouchableOpacity>
-
-										<TouchableOpacity
-											style={[
-												styles.unidadButton,
-												ingredienteUnidad === "kg" &&
-													styles.unidadButtonSelected,
-											]}
-											onPress={() => setIngredienteUnidad("kg")}
-										>
-											<ThemedText
-												style={[
-													styles.unidadButtonText,
-													ingredienteUnidad === "kg" &&
-														styles.unidadButtonTextSelected,
-													{ color: textColor },
-												]}
-											>
-												kg
-											</ThemedText>
-										</TouchableOpacity>
-
-										<TouchableOpacity
-											style={[
-												styles.unidadButton,
-												ingredienteUnidad === "L" &&
-													styles.unidadButtonSelected,
-											]}
-											onPress={() => setIngredienteUnidad("L")}
-										>
-											<ThemedText
-												style={[
-													styles.unidadButtonText,
-													ingredienteUnidad === "L" &&
-														styles.unidadButtonTextSelected,
-													{ color: textColor },
-												]}
-											>
-												L
-											</ThemedText>
-										</TouchableOpacity>
-									</ThemedView>
-								</ThemedView>
-
-								<ThemedView style={styles.botonesContainer}>
+								<ThemedView style={styles.ingredienteAcciones}>
 									<TouchableOpacity
-										style={[styles.boton, styles.botonCancelar]}
-										onPress={cancelarFormulario}
+										style={styles.accionBoton}
+										onPress={() => iniciarEdicion(index)}
 									>
-										<ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
+										<Ionicons name="pencil" size={20} color="#A1CEDC" />
 									</TouchableOpacity>
-
 									<TouchableOpacity
-										style={[styles.boton, styles.botonGuardar]}
-										onPress={guardarIngrediente}
+										style={styles.accionBoton}
+										onPress={() => eliminarIngrediente(index)}
 									>
-										<ThemedText style={styles.botonTexto}>Guardar</ThemedText>
+										<Ionicons
+											name="trash-outline"
+											size={20}
+											color="#FF6B6B"
+										/>
 									</TouchableOpacity>
 								</ThemedView>
 							</ThemedView>
-						</View>
-					</TouchableWithoutFeedback>
-				</Modal>
-			</KeyboardAvoidingView>
-		</TouchableWithoutFeedback>
+						))}
+					</ScrollView>
+
+					<TouchableOpacity
+						style={styles.botonAgregar}
+						onPress={mostrarFormularioAgregar}
+					>
+						<Ionicons name="add-circle" size={24} color="#A1CEDC" />
+						<ThemedText style={styles.botonAgregarTexto}>
+							Añadir ingrediente
+						</ThemedText>
+					</TouchableOpacity>
+				</ThemedView>
+
+				<ThemedView style={styles.botonesContainer}>
+					<TouchableOpacity
+						style={[styles.boton, styles.botonCancelar]}
+						onPress={() => router.back()}
+					>
+						<ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
+					</TouchableOpacity>
+
+					<TouchableOpacity
+						style={[styles.boton, styles.botonGuardar]}
+						onPress={guardarFormula}
+					>
+						<ThemedText style={styles.botonTexto}>Guardar</ThemedText>
+					</TouchableOpacity>
+				</ThemedView>
+			</ScrollView>
+
+			{/* Modal para añadir o editar ingredientes */}
+			<Modal
+				visible={mostrarFormulario}
+				transparent={true}
+				animationType="fade"
+				onRequestClose={cancelarFormulario}
+			>
+				<View style={styles.modalOverlay}>
+					<ThemedView style={[styles.modalContainer, { backgroundColor }]}>
+						<ThemedText type="subtitle" style={styles.subtitleForm}>
+							{editandoIndex !== null
+								? "Editar Ingrediente"
+								: "Añadir Ingrediente"}
+						</ThemedText>
+
+						<ThemedView style={styles.inputRow}>
+							<ThemedText style={styles.label}>Nombre:</ThemedText>
+							<TextInput
+								ref={ingredienteNombreRef}
+								style={[styles.input, { color: textColor }]}
+								value={ingredienteNombre}
+								onChangeText={setIngredienteNombre}
+								placeholder="Nombre del ingrediente"
+								placeholderTextColor="rgba(150, 150, 150, 0.8)"
+								editable={true}
+								autoCapitalize="sentences"
+							/>
+						</ThemedView>
+
+						<ThemedView style={styles.inputRow}>
+							<ThemedText style={styles.label}>Cantidad:</ThemedText>
+							<TextInput
+								ref={ingredienteCantidadRef}
+								style={[styles.input, { color: textColor }]}
+								value={ingredienteCantidad}
+								onChangeText={setIngredienteCantidad}
+								placeholder="Cantidad"
+								keyboardType="numeric"
+								placeholderTextColor="rgba(150, 150, 150, 0.8)"
+								editable={true}
+							/>
+						</ThemedView>
+
+						<ThemedView style={styles.inputRow}>
+							<ThemedText style={styles.label}>Unidad:</ThemedText>
+							<ThemedView style={styles.unidadSelectorContainer}>
+								<TouchableOpacity
+									style={[
+										styles.unidadButton,
+										ingredienteUnidad === "gr" &&
+											styles.unidadButtonSelected,
+									]}
+									onPress={() => setIngredienteUnidad("gr")}
+								>
+									<ThemedText
+										style={[
+											styles.unidadButtonText,
+											ingredienteUnidad === "gr" &&
+												styles.unidadButtonTextSelected,
+											{ color: textColor },
+										]}
+									>
+										gr
+									</ThemedText>
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									style={[
+										styles.unidadButton,
+										ingredienteUnidad === "kg" &&
+											styles.unidadButtonSelected,
+									]}
+									onPress={() => setIngredienteUnidad("kg")}
+								>
+									<ThemedText
+										style={[
+											styles.unidadButtonText,
+											ingredienteUnidad === "kg" &&
+												styles.unidadButtonTextSelected,
+											{ color: textColor },
+										]}
+									>
+										kg
+									</ThemedText>
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									style={[
+										styles.unidadButton,
+										ingredienteUnidad === "L" &&
+											styles.unidadButtonSelected,
+									]}
+									onPress={() => setIngredienteUnidad("L")}
+								>
+									<ThemedText
+										style={[
+											styles.unidadButtonText,
+											ingredienteUnidad === "L" &&
+												styles.unidadButtonTextSelected,
+											{ color: textColor },
+										]}
+									>
+										L
+									</ThemedText>
+								</TouchableOpacity>
+							</ThemedView>
+						</ThemedView>
+
+						<ThemedView style={styles.botonesContainer}>
+							<TouchableOpacity
+								style={[styles.boton, styles.botonCancelar]}
+								onPress={cancelarFormulario}
+							>
+								<ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
+							</TouchableOpacity>
+
+							<TouchableOpacity
+								style={[styles.boton, styles.botonGuardar]}
+								onPress={guardarIngrediente}
+							>
+								<ThemedText style={styles.botonTexto}>Guardar</ThemedText>
+							</TouchableOpacity>
+						</ThemedView>
+					</ThemedView>
+				</View>
+			</Modal>
+		</KeyboardAvoidingView>
 	);
 }
 
