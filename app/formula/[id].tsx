@@ -394,7 +394,7 @@ export default function FormulaScreen() {
 					animationType="fade"
 					onRequestClose={cancelarFormulario}
 				>
-					<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+					{/* <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
 						<View style={styles.modalOverlay}>
 							<ThemedView style={styles.modalContainer}>
 								<ThemedView style={styles.modalHeader}>
@@ -552,9 +552,7 @@ export default function FormulaScreen() {
 										style={[styles.boton, styles.botonCancelar]}
 										onPress={cancelarFormulario}
 									>
-										<ThemedText style={styles.botonTexto}>
-											Cancelar
-										</ThemedText>
+										<ThemedText style={styles.botonTexto}>Cancelar</ThemedText>
 									</TouchableOpacity>
 
 									<TouchableOpacity
@@ -566,7 +564,7 @@ export default function FormulaScreen() {
 								</ThemedView>
 							</ThemedView>
 						</View>
-					</TouchableWithoutFeedback>
+					{/* </TouchableWithoutFeedback> */}
 				</Modal>
 			</ParallaxScrollView>
 		</GestureHandlerRootView>

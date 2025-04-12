@@ -35,10 +35,6 @@ const mapApiToLocal = (apiFormula: FormulaAPI): Formula => {
 				nombre = ing.name.replace(/\s*\[(gr|kg|L)\]$/i, "");
 			}
 
-			console.log(
-				`Ingrediente: ${nombre}, Unidad: ${unidad}, Original: ${ing.name}`,
-			);
-
 			return {
 				nombre,
 				cantidad: ing.quantity,
