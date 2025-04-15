@@ -7,6 +7,12 @@ import { getFormulaById, updateIngredient, deleteIngredient } from "@/api/formul
 import type { Formula, Ingrediente } from "@/data/formulas";
 import { showSuccess, showError } from "@/utils/toast";
 
+// Función para capitalizar la primera letra de un string
+function capitalizeFirstLetter(text: string) {
+	if (!text) return "";
+	return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export default function FormulaDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
@@ -168,7 +174,7 @@ export default function FormulaDetailScreen() {
 						<ThemedView
 							style={styles.ingredientContainer}
 						>
-							<ThemedText style={styles.ingredientName}>{name}</ThemedText>
+							<ThemedText style={styles.ingredientName}>{capitalizeFirstLetter(name)}</ThemedText>
 							<ThemedText style={styles.ingredientQuantity}>
 								{quantity} {unit}
 							</ThemedText>
