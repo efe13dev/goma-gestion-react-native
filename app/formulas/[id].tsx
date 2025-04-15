@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, ActivityIndicator, TouchableOpacity, Modal, View, TextInput, Button, Alert, useColorScheme } from "react-native";
+import {
+	StyleSheet,
+	ActivityIndicator,
+	TouchableOpacity,
+	Modal,
+	View,
+	TextInput,
+	Alert,
+	useColorScheme,
+	Text,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { getFormulaById, updateIngredient, deleteIngredient } from "@/api/formulasApi";
+import {
+	getFormulaById,
+	updateIngredient,
+	deleteIngredient,
+	addIngredient,
+} from "@/api/formulasApi";
 import type { Formula, Ingrediente } from "@/data/formulas";
 import { showSuccess, showError } from "@/utils/toast";
 
@@ -27,6 +42,12 @@ export default function FormulaDetailScreen() {
 	const [editedIngredient, setEditedIngredient] = useState<Ingrediente>({
 		nombre: "",
 		cantidad: 0,
+		unidad: "gr",
+	});
+	const [addModalVisible, setAddModalVisible] = useState(false);
+	const [newIngredient, setNewIngredient] = useState({
+		nombre: "",
+		cantidad: "",
 		unidad: "gr",
 	});
 
@@ -103,11 +124,14 @@ export default function FormulaDetailScreen() {
 			const success = await updateIngredient(
 				id as string,
 				selectedIngredient.index,
-				editedIngredient
+				editedIngredient,
 			);
 
 			if (success) {
-				showSuccess("Ingrediente actualizado", "El ingrediente se actualizó correctamente");
+				showSuccess(
+					"Ingrediente actualizado",
+					"El ingrediente se actualizó correctamente",
+				);
 				fetchFormula(); // Recargar la fórmula para mostrar los cambios
 			} else {
 				showError("Error", "No se pudo actualizar el ingrediente");
@@ -141,11 +165,14 @@ export default function FormulaDetailScreen() {
 						try {
 							const success = await deleteIngredient(
 								id as string,
-								selectedIngredient.index
+								selectedIngredient.index,
 							);
 
 							if (success) {
-								showSuccess("Ingrediente eliminado", "El ingrediente se eliminó correctamente");
+								showSuccess(
+									"Ingrediente eliminado",
+									"El ingrediente se eliminó correctamente",
+								);
 								fetchFormula(); // Recargar la fórmula para mostrar los cambios
 							} else {
 								showError("Error", "No se pudo eliminar el ingrediente");
@@ -159,8 +186,44 @@ export default function FormulaDetailScreen() {
 						}
 					},
 				},
-			]
+			],
 		);
+	};
+
+	const handleAddIngredient = () => {
+		setAddModalVisible(true);
+	};
+
+	const handleSaveNewIngredient = async () => {
+		if (!newIngredient.nombre.trim() || !newIngredient.cantidad.trim()) {
+			showError("Error", "Completa el nombre y la cantidad del ingrediente");
+			return;
+		}
+		setIsLoading(true);
+		try {
+			const ingredienteObj = {
+				nombre: newIngredient.nombre.trim(),
+				cantidad: Number(newIngredient.cantidad),
+				unidad: newIngredient.unidad.trim() || "gr",
+			};
+			const success = await addIngredient(id as string, ingredienteObj);
+			if (success) {
+				showSuccess(
+					"Ingrediente añadido",
+					"El ingrediente se añadió correctamente",
+				);
+				fetchFormula(); // Recargar la fórmula para mostrar los cambios
+				setAddModalVisible(false);
+				setNewIngredient({ nombre: "", cantidad: "", unidad: "gr" });
+			} else {
+				showError("Error", "No se pudo añadir el ingrediente");
+			}
+		} catch (error) {
+			console.error("Error al añadir ingrediente:", error);
+			showError("Error", "Ocurrió un error al añadir el ingrediente");
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	if (isLoading) {
@@ -204,7 +267,9 @@ export default function FormulaDetailScreen() {
 						onPress={() => handleIngredientPress(ingrediente, index)}
 					>
 						<View style={ingredientStyles.ingredientContainer}>
-							<ThemedText style={ingredientStyles.ingredientName}>{capitalizeFirstLetter(name)}</ThemedText>
+							<ThemedText style={ingredientStyles.ingredientName}>
+								{capitalizeFirstLetter(name)}
+							</ThemedText>
 							<ThemedText style={ingredientStyles.ingredientQuantity}>
 								{quantity} {unit}
 							</ThemedText>
@@ -224,7 +289,32 @@ export default function FormulaDetailScreen() {
 			<ThemedText type="title" style={styles.title}>
 				{formula ? capitalizeFirstLetter(formula.nombreColor) : ""}
 			</ThemedText>
-			<ThemedText style={styles.subtitle}>Ingredientes:</ThemedText>
+			<View
+				style={{
+					flexDirection: "row",
+					alignItems: "center",
+					justifyContent: "space-between",
+					marginBottom: 8,
+				}}
+			>
+				<ThemedText style={styles.subtitle}>Ingredientes:</ThemedText>
+				<TouchableOpacity
+					style={{
+						backgroundColor: "#2E7D9B",
+						borderRadius: 16,
+						width: 32,
+						height: 32,
+						alignItems: "center",
+						justifyContent: "center",
+						marginLeft: 8,
+					}}
+					onPress={handleAddIngredient}
+				>
+					<Text style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>
+						+
+					</Text>
+				</TouchableOpacity>
+			</View>
 			{ingredientsContent}
 
 			{/* Modal para editar o eliminar ingrediente */}
@@ -239,7 +329,7 @@ export default function FormulaDetailScreen() {
 						<ThemedText style={styles.modalTitle}>
 							Editar Ingrediente
 						</ThemedText>
-						
+
 						<ThemedText style={styles.label}>Nombre:</ThemedText>
 						<TextInput
 							style={styles.input}
@@ -249,7 +339,7 @@ export default function FormulaDetailScreen() {
 							}
 							placeholder="Nombre del ingrediente"
 						/>
-						
+
 						<ThemedText style={styles.label}>Cantidad:</ThemedText>
 						<TextInput
 							style={styles.input}
@@ -263,7 +353,7 @@ export default function FormulaDetailScreen() {
 							keyboardType="numeric"
 							placeholder="Cantidad"
 						/>
-						
+
 						<ThemedText style={styles.label}>Unidad:</ThemedText>
 						<View style={styles.unitButtonsContainer}>
 							{["gr", "kg", "L"].map((unit) => (
@@ -271,7 +361,8 @@ export default function FormulaDetailScreen() {
 									key={unit}
 									style={[
 										styles.unitButton,
-										editedIngredient.unidad === unit && styles.selectedUnitButton,
+										editedIngredient.unidad === unit &&
+											styles.selectedUnitButton,
 									]}
 									onPress={() =>
 										setEditedIngredient({ ...editedIngredient, unidad: unit })
@@ -280,7 +371,8 @@ export default function FormulaDetailScreen() {
 									<ThemedText
 										style={[
 											styles.unitButtonText,
-											editedIngredient.unidad === unit && styles.selectedUnitButtonText,
+											editedIngredient.unidad === unit &&
+												styles.selectedUnitButtonText,
 										]}
 									>
 										{unit}
@@ -288,7 +380,7 @@ export default function FormulaDetailScreen() {
 								</TouchableOpacity>
 							))}
 						</View>
-						
+
 						<View style={styles.buttonContainer}>
 							<TouchableOpacity
 								style={[styles.button, styles.cancelButton]}
@@ -296,19 +388,103 @@ export default function FormulaDetailScreen() {
 							>
 								<ThemedText style={styles.buttonText}>Cancelar</ThemedText>
 							</TouchableOpacity>
-							
+
 							<TouchableOpacity
 								style={[styles.button, styles.deleteButton]}
 								onPress={handleDeleteIngredient}
 							>
 								<ThemedText style={styles.buttonText}>Eliminar</ThemedText>
 							</TouchableOpacity>
-							
+
 							<TouchableOpacity
 								style={[styles.button, styles.saveButton]}
 								onPress={handleUpdateIngredient}
 							>
 								<ThemedText style={styles.buttonText}>Guardar</ThemedText>
+							</TouchableOpacity>
+						</View>
+					</View>
+				</View>
+			</Modal>
+
+			{/* Modal para añadir nuevo ingrediente */}
+			<Modal
+				animationType="slide"
+				transparent={true}
+				visible={addModalVisible}
+				onRequestClose={() => setAddModalVisible(false)}
+			>
+				<View style={styles.modalOverlay}>
+					<View style={styles.modalContent}>
+						<ThemedText style={styles.modalTitle}>Nuevo Ingrediente</ThemedText>
+						<ThemedText style={styles.label}>Nombre:</ThemedText>
+						<TextInput
+							style={styles.input}
+							value={newIngredient.nombre}
+							onChangeText={(text) =>
+								setNewIngredient({ ...newIngredient, nombre: text })
+							}
+							placeholder="Nombre del ingrediente"
+							placeholderTextColor={isDark ? "#fff" : "#888"}
+						/>
+						<ThemedText style={styles.label}>Cantidad:</ThemedText>
+						<TextInput
+							style={styles.input}
+							value={newIngredient.cantidad}
+							onChangeText={(text) => {
+								// Solo permitir números positivos
+								if (/^\d*$/.test(text))
+									setNewIngredient({ ...newIngredient, cantidad: text });
+							}}
+							placeholder="Cantidad"
+							placeholderTextColor={isDark ? "#fff" : "#888"}
+							keyboardType="numeric"
+						/>
+						<ThemedText style={styles.label}>Unidad:</ThemedText>
+						<View style={styles.unitButtonsContainer}>
+							{["gr", "kg", "L"].map((unit) => (
+								<TouchableOpacity
+									key={unit}
+									style={[
+										styles.unitButton,
+										newIngredient.unidad === unit && styles.selectedUnitButton,
+									]}
+									onPress={() =>
+										setNewIngredient({ ...newIngredient, unidad: unit })
+									}
+								>
+									<ThemedText
+										style={[
+											styles.unitButtonText,
+											newIngredient.unidad === unit &&
+												styles.selectedUnitButtonText,
+										]}
+									>
+										{unit}
+									</ThemedText>
+								</TouchableOpacity>
+							))}
+						</View>
+						<View
+							style={{
+								flexDirection: "row",
+								justifyContent: "space-between",
+								marginTop: 16,
+							}}
+						>
+							<TouchableOpacity
+								style={[styles.button, { backgroundColor: "#2E7D9B" }]}
+								onPress={handleSaveNewIngredient}
+							>
+								<Text style={{ color: "white", fontWeight: "bold" }}>
+									Guardar
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								style={[styles.button, { backgroundColor: "#B0B0B0" }]}
+								onPress={() => setAddModalVisible(false)}
+							>
+								<Text style={{ color: "#222" }}>Cancelar</Text>
 							</TouchableOpacity>
 						</View>
 					</View>
