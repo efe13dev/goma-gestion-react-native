@@ -383,10 +383,10 @@ export default function FormulaDetailScreen() {
 
 						<View style={styles.buttonContainer}>
 							<TouchableOpacity
-								style={[styles.button, styles.cancelButton]}
-								onPress={() => setModalVisible(false)}
+								style={[styles.button, styles.saveButton]}
+								onPress={handleUpdateIngredient}
 							>
-								<ThemedText style={styles.buttonText}>Cancelar</ThemedText>
+								<ThemedText style={styles.buttonText}>Guardar</ThemedText>
 							</TouchableOpacity>
 
 							<TouchableOpacity
@@ -397,10 +397,10 @@ export default function FormulaDetailScreen() {
 							</TouchableOpacity>
 
 							<TouchableOpacity
-								style={[styles.button, styles.saveButton]}
-								onPress={handleUpdateIngredient}
+								style={[styles.button, styles.cancelButton]}
+								onPress={() => setModalVisible(false)}
 							>
-								<ThemedText style={styles.buttonText}>Guardar</ThemedText>
+								<ThemedText style={styles.buttonText}>Cancelar</ThemedText>
 							</TouchableOpacity>
 						</View>
 					</View>
