@@ -55,7 +55,7 @@ export default function RootLayout() {
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 				<Stack.Screen name="+not-found" />
 				<Stack.Screen
-					name="formula/[id]"
+					name="formulas/[id]"
 					options={{
 						title: "Volver",
 						headerBackTitle: "Volver",
@@ -75,9 +75,3 @@ export default function RootLayout() {
 		</ThemeProvider>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-});
