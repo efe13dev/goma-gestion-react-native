@@ -333,115 +333,107 @@ export default function HomeScreen() {
 		[selectedId, adjustQuantity, confirmDeleteColor],
 	);
 
-	if (isLoading) {
-		return (
-			<View style={styles.loadingContainer}>
-				<ActivityIndicator size="large" color="#A1CEDC" />
-				<ThemedText style={styles.loadingText}>
-					Cargando inventario...
-				</ThemedText>
-			</View>
-		);
-	}
-
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<View style={styles.container}>
-				{/* Cabecera */}
+				{/* Header visual estilo Fórmulas */}
 				<View style={styles.header}>
 					<Image
-						source={require("@/assets/images/palot.png")}
+						source={require("../../assets/images/palot.png")}
 						style={styles.reactLogo}
+						resizeMode="contain"
 					/>
 					<View style={styles.titleContainer}>
-						<ThemedText type="title" style={styles.titleText}>
-							Stock
-						</ThemedText>
+						<ThemedText style={styles.titleText}>Stock de Colores</ThemedText>
 						<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
 							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
 						</TouchableOpacity>
 					</View>
 				</View>
 
-				{/* Contenido */}
+				{/* Contenido principal, incluyendo loader o lista */}
 				<View style={styles.content}>
-					{error && (
+					{isLoading ? (
+						<View style={styles.loadingContainer}>
+							<ActivityIndicator size="large" color="#2E7D9B" />
+							<ThemedText style={styles.loadingText}>Cargando stock...</ThemedText>
+						</View>
+					) : error ? (
 						<ThemedView style={styles.errorContainer}>
 							<ThemedText style={styles.errorText}>{error}</ThemedText>
 							<TouchableOpacity onPress={reloadData} style={styles.retryButton}>
-								<ThemedText style={styles.retryButtonText}>
-									Reintentar
-								</ThemedText>
+								<ThemedText style={styles.retryButtonText}>Reintentar</ThemedText>
 							</TouchableOpacity>
 						</ThemedView>
-					)}
-
-					<ThemedView style={styles.colorContainer}>
-						<View style={styles.headerContainer}>
-							<ThemedText type="subtitle" style={styles.subtitle}>
-								Inventario de colores
-							</ThemedText>
-							<TouchableOpacity
-								style={styles.addButton}
-								onPress={() => setShowForm(!showForm)}
-							>
-								<ThemedText style={styles.addButtonText}>
-									{showForm ? "✕" : "+"}
+					) : (
+						// Aquí va la lista y el resto del contenido
+						<View style={styles.colorContainer}>
+							<View style={styles.headerContainer}>
+								<ThemedText type="subtitle" style={styles.subtitle}>
+									Inventario de colores
 								</ThemedText>
-							</TouchableOpacity>
-						</View>
-
-						{showForm && (
-							<ThemedView style={styles.formContainer}>
-								<TextInput
-									style={styles.input}
-									placeholder="Nombre del color"
-									value={newColorName}
-									onChangeText={setNewColorName}
-									placeholderTextColor="#888"
-								/>
-								<TextInput
-									style={styles.input}
-									placeholder="Cantidad (opcional)"
-									value={newColorQuantity}
-									onChangeText={setNewColorQuantity}
-									keyboardType="numeric"
-									placeholderTextColor="#888"
-								/>
 								<TouchableOpacity
-									style={styles.submitButton}
-									onPress={addColor}
+									style={styles.addButton}
+									onPress={() => setShowForm(!showForm)}
 								>
-									<ThemedText style={styles.submitButtonText}>
-										Agregar Color
+									<ThemedText style={styles.addButtonText}>
+										{showForm ? "✕" : "+"}
 									</ThemedText>
 								</TouchableOpacity>
-							</ThemedView>
-						)}
+							</View>
 
-						{inventory.length === 0 ? (
-							<ThemedView style={styles.emptyContainer}>
-								<ThemedText style={styles.emptyText}>
-									No hay colores en el inventario
+							{showForm && (
+								<ThemedView style={styles.formContainer}>
+									<TextInput
+										style={styles.input}
+										placeholder="Nombre del color"
+										value={newColorName}
+										onChangeText={setNewColorName}
+										placeholderTextColor="#888"
+									/>
+									<TextInput
+										style={styles.input}
+										placeholder="Cantidad (opcional)"
+										value={newColorQuantity}
+										onChangeText={setNewColorQuantity}
+										keyboardType="numeric"
+										placeholderTextColor="#888"
+									/>
+									<TouchableOpacity
+										style={styles.submitButton}
+										onPress={addColor}
+									>
+										<ThemedText style={styles.submitButtonText}>
+											Agregar Color
+										</ThemedText>
+									</TouchableOpacity>
+								</ThemedView>
+							)}
+
+							{inventory.length === 0 ? (
+								<ThemedView style={styles.emptyContainer}>
+									<ThemedText style={styles.emptyText}>
+										No hay colores en el inventario
+									</ThemedText>
+								</ThemedView>
+							) : (
+								<DraggableFlatList
+									data={inventory}
+									onDragEnd={handleDragEnd}
+									keyExtractor={(item) => item.id}
+									renderItem={renderItem}
+									contentContainerStyle={styles.flatListContent}
+									ListFooterComponent={<View style={styles.listFooter} />}
+								/>
+							)}
+
+							{inventory.length > 0 && (
+								<ThemedText style={styles.helpText}>
+									Mantener presionado un color para arrastrarlo y reordenarlo
 								</ThemedText>
-							</ThemedView>
-						) : (
-							<DraggableFlatList
-								data={inventory}
-								onDragEnd={handleDragEnd}
-								keyExtractor={(item) => item.id}
-								renderItem={renderItem}
-								contentContainerStyle={styles.flatListContent}
-								ListFooterComponent={<View style={styles.listFooter} />}
-							/>
-						)}
-
-						{inventory.length > 0 && (
-							<ThemedText style={styles.helpText}>
-								Mantener presionado un color para arrastrarlo y reordenarlo
-							</ThemedText>
-						)}
-					</ThemedView>
+							)}
+						</View>
+					)}
 				</View>
 			</View>
 		</GestureHandlerRootView>
