@@ -344,7 +344,7 @@ export default function HomeScreen() {
 						resizeMode="contain"
 					/>
 					<View style={styles.titleContainer}>
-						<ThemedText style={styles.titleText}>Stock de Colores</ThemedText>
+						<ThemedText style={styles.titleText}>Stock</ThemedText>
 						<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
 							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
 						</TouchableOpacity>
@@ -356,13 +356,17 @@ export default function HomeScreen() {
 					{isLoading ? (
 						<View style={styles.loadingContainer}>
 							<ActivityIndicator size="large" color="#2E7D9B" />
-							<ThemedText style={styles.loadingText}>Cargando stock...</ThemedText>
+							<ThemedText style={styles.loadingText}>
+								Cargando stock...
+							</ThemedText>
 						</View>
 					) : error ? (
 						<ThemedView style={styles.errorContainer}>
 							<ThemedText style={styles.errorText}>{error}</ThemedText>
 							<TouchableOpacity onPress={reloadData} style={styles.retryButton}>
-								<ThemedText style={styles.retryButtonText}>Reintentar</ThemedText>
+								<ThemedText style={styles.retryButtonText}>
+									Reintentar
+								</ThemedText>
 							</TouchableOpacity>
 						</ThemedView>
 					) : (
@@ -473,6 +477,7 @@ const styles = StyleSheet.create({
 		textShadowOffset: { width: 1, height: 1 },
 		textShadowRadius: 2,
 		marginRight: 15,
+		lineHeight: 35, // Aumenta la altura de la fuente
 	},
 	colorContainer: {
 		padding: 12,
