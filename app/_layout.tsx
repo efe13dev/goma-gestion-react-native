@@ -11,7 +11,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { StyleSheet } from "react-native";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { cargarFormulas } from "@/data/formulas";
+// import { cargarFormulas } from "@/data/formulas";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -26,7 +26,7 @@ export default function RootLayout() {
 		// Cargar las fórmulas desde el archivo al iniciar la aplicación
 		const inicializarDatos = async () => {
 			try {
-				await cargarFormulas();
+				// await cargarFormulas();
 				console.log("Datos de fórmulas inicializados correctamente");
 			} catch (error) {
 				console.error(`Error al inicializar los datos de fórmulas: ${error}`);

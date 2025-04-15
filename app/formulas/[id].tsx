@@ -19,7 +19,7 @@ import {
 	deleteIngredient,
 	addIngredient,
 } from "@/api/formulasApi";
-import type { Formula, Ingrediente } from "@/data/formulas";
+import type { Formula, Ingrediente } from "@/types/formulas";
 import { showSuccess, showError } from "@/utils/toast";
 
 // Función para capitalizar la primera letra de un string

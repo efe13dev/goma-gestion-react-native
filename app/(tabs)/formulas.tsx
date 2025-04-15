@@ -13,7 +13,7 @@ import { Link } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { getFormulas, deleteFormula } from "@/api/formulasApi";
-import type { Formula } from "@/data/formulas";
+import type { Formula } from "@/types/formulas";
 import { useFocusEffect } from "@react-navigation/native";
 import { showSuccess, showError } from "@/utils/toast";
 import { useThemeColor } from "@/hooks/useThemeColor";

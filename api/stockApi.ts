@@ -1,4 +1,4 @@
-import type { RubberColor } from '@/data/colors';
+import type { RubberColor } from '@/types/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // API base URL

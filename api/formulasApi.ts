@@ -1,4 +1,4 @@
-import type { Formula, Ingrediente } from "@/data/formulas";
+import type { Formula, Ingrediente } from "@/types/formulas";
 
 // API base URL
 const API_URL = "https://api-rubber-hono.onrender.com";

@@ -12,15 +12,14 @@ import {
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import {
-	type RubberColor,
-	saveInventory,
-	loadInventory,
-	addNewColor,
-	deleteColorFromInventory,
-	updateInventoryOrder,
+	getStock,
+	addColor,
+	updateColor,
+	deleteColor,
 	getColorOrder,
 	updateColorOrder,
-} from "@/data/colors";
+} from "@/api/stockApi";
+import type { RubberColor } from "@/types/colors";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import DraggableFlatList, {
@@ -47,7 +46,7 @@ export default function HomeScreen() {
 		setIsLoading(true);
 		setError(null);
 		try {
-			const data = await loadInventory();
+			const data = await getStock();
 			// Cargar el orden guardado de AsyncStorage
 			const savedOrder = await getColorOrder();
 
@@ -109,13 +108,18 @@ export default function HomeScreen() {
 	const adjustQuantity = useCallback(
 		async (id: string, increment: number) => {
 			try {
-				const newInventory = inventory.map((color) =>
-					color.id === id
-						? { ...color, quantity: Math.max(0, color.quantity + increment) }
-						: color,
+				const colorToUpdate = inventory.find((color) => color.id === id);
+				if (!colorToUpdate) return;
+				const updatedColor: RubberColor = {
+					...colorToUpdate,
+					quantity: Math.max(0, colorToUpdate.quantity + increment),
+				};
+				setInventory((prev) =>
+					prev.map((color) =>
+						color.id === id ? updatedColor : color
+					)
 				);
-				setInventory(newInventory);
-				await saveInventory(newInventory);
+				await updateColor(updatedColor);
 			} catch (err) {
 				showError(
 					"Error",
@@ -129,7 +133,7 @@ export default function HomeScreen() {
 		[inventory, loadData],
 	);
 
-	const addColor = async () => {
+	const handleAddColor = async () => {
 		if (!newColorName.trim()) {
 			showError("Error", "Debe ingresar un nombre para el color");
 			return;
@@ -151,7 +155,12 @@ export default function HomeScreen() {
 
 		try {
 			setIsLoading(true);
-			await addNewColor(newColorName, quantity);
+			const newColor: RubberColor = {
+				id: newColorName.toLowerCase().replace(/\s+/g, "-"),
+				name: newColorName,
+				quantity,
+			};
+			await addColor(newColor);
 			// Clear the form
 			setNewColorName("");
 			setNewColorQuantity("");
@@ -174,7 +183,7 @@ export default function HomeScreen() {
 		async (name: string) => {
 			try {
 				setIsLoading(true);
-				await deleteColorFromInventory(name);
+				await deleteColor(name);
 				await loadData();
 				showSuccess("¡Eliminado!", `Color ${name} eliminado`);
 			} catch (err) {
@@ -215,7 +224,7 @@ export default function HomeScreen() {
 			setInventory(data);
 			// Guardar el nuevo orden
 			setColorOrder(data.map((color) => color.id));
-			await updateInventoryOrder(data);
+			await updateColorOrder(data);
 		} catch (err) {
 			showError(
 				"Error",
@@ -369,9 +378,21 @@ export default function HomeScreen() {
 							</TouchableOpacity>
 						</View>
 					) : isLoading ? (
-						<View style={[styles.loadingContainer, { flex: 1, justifyContent: "center", alignItems: "center" }]}>
+						<View
+							style={[
+								styles.loadingContainer,
+								{ flex: 1, justifyContent: "center", alignItems: "center" },
+							]}
+						>
 							<ActivityIndicator size="large" color="#2E7D9B" />
-							<ThemedText style={{ marginTop: 14, color: "#2E7D9B", fontWeight: "bold", fontSize: 18 }}>
+							<ThemedText
+								style={{
+									marginTop: 14,
+									color: "#2E7D9B",
+									fontWeight: "bold",
+									fontSize: 18,
+								}}
+							>
 								Cargando stock...
 							</ThemedText>
 						</View>
@@ -411,7 +432,7 @@ export default function HomeScreen() {
 									/>
 									<TouchableOpacity
 										style={styles.submitButton}
-										onPress={addColor}
+										onPress={handleAddColor}
 									>
 										<ThemedText style={styles.submitButtonText}>
 											Agregar Color
@@ -540,8 +561,8 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 	reactLogo: {
-		width: "80%",
-		height: "70%",
+		width: 120,
+		height: 120,
 		resizeMode: "contain",
 		marginBottom: -10,
 	},
