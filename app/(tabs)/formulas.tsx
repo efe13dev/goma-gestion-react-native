@@ -226,6 +226,13 @@ export default function FormulasScreen() {
 						<ThemedText style={styles.addButtonText}>Reintentar</ThemedText>
 					</TouchableOpacity>
 				</View>
+			) : isLoading ? (
+				<View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+					<ActivityIndicator size="large" color="#2E7D9B" />
+					<ThemedText style={{ marginTop: 14, color: "#2E7D9B", fontWeight: "bold", fontSize: 18 }}>
+						Cargando fórmulas...
+					</ThemedText>
+				</View>
 			) : (
 				<FlatList
 					data={formulas}

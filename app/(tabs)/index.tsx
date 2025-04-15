@@ -6,6 +6,7 @@ import {
 	TouchableOpacity,
 	View,
 	Animated,
+	Easing,
 	Alert, // Import Alert from react-native
 } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
@@ -20,7 +21,7 @@ import {
 	getColorOrder,
 	updateColorOrder,
 } from "@/data/colors";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import DraggableFlatList, {
 	ScaleDecorator,
@@ -346,29 +347,34 @@ export default function HomeScreen() {
 					<View style={styles.titleContainer}>
 						<ThemedText style={styles.titleText}>Stock</ThemedText>
 						<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
-							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
+							{isLoading ? (
+								<ActivityIndicator size="small" color="white" />
+							) : (
+								<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
+							)}
 						</TouchableOpacity>
 					</View>
 				</View>
 
 				{/* Contenido principal, incluyendo loader o lista */}
 				<View style={styles.content}>
-					{isLoading ? (
-						<View style={styles.loadingContainer}>
+					{error ? (
+						<View style={styles.emptyContainer}>
+							<ThemedText style={styles.emptyText}>{error}</ThemedText>
+							<TouchableOpacity
+								onPress={reloadData}
+								style={[styles.addButton, { backgroundColor: "#2E7D9B" }]}
+							>
+								<ThemedText style={styles.addButtonText}>Reintentar</ThemedText>
+							</TouchableOpacity>
+						</View>
+					) : isLoading ? (
+						<View style={[styles.loadingContainer, { flex: 1, justifyContent: "center", alignItems: "center" }]}>
 							<ActivityIndicator size="large" color="#2E7D9B" />
-							<ThemedText style={styles.loadingText}>
+							<ThemedText style={{ marginTop: 14, color: "#2E7D9B", fontWeight: "bold", fontSize: 18 }}>
 								Cargando stock...
 							</ThemedText>
 						</View>
-					) : error ? (
-						<ThemedView style={styles.errorContainer}>
-							<ThemedText style={styles.errorText}>{error}</ThemedText>
-							<TouchableOpacity onPress={reloadData} style={styles.retryButton}>
-								<ThemedText style={styles.retryButtonText}>
-									Reintentar
-								</ThemedText>
-							</TouchableOpacity>
-						</ThemedView>
 					) : (
 						// Aquí va la lista y el resto del contenido
 						<View style={styles.colorContainer}>
