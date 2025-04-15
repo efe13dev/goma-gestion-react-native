@@ -63,7 +63,7 @@ export default function RootLayout() {
 					}}
 				/>
 				<Stack.Screen
-					name="nueva-formula"
+					name="formulas/nueva-formula"
 					options={{
 						title: "Volver",
 						headerBackTitle: "Volver",

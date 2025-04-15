@@ -18,16 +18,15 @@ import { useFocusEffect } from "@react-navigation/native";
 import { showSuccess, showError } from "@/utils/toast";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { Ionicons } from "@expo/vector-icons";
+import { useColorScheme } from "react-native";
 
 export default function FormulasScreen() {
 	const [formulas, setFormulas] = useState<Formula[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	const backgroundColor = useThemeColor({}, "background");
-	const tintColor = useThemeColor({}, "tint");
-	const textColor = useThemeColor({}, "text");
-	const iconColor = useThemeColor({}, "icon");
+	const colorScheme = useColorScheme();
+	const isDark = colorScheme === "dark";
 
 	const loadFormulas = useCallback(async () => {
 		setIsLoading(true);
@@ -84,43 +83,147 @@ export default function FormulasScreen() {
 		}, [loadFormulas]),
 	);
 
+	const styles = StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: isDark ? "#192734" : "#F4F9FB",
+		},
+		header: {
+			backgroundColor: "#A1CEDC",
+			height: 180,
+			justifyContent: "flex-end",
+			alignItems: "center",
+			borderBottomLeftRadius: 0,
+			borderBottomRightRadius: 0,
+			paddingBottom: 5,
+			paddingTop: 10,
+		},
+		reactLogo: {
+			width: 120,
+			height: 120,
+			resizeMode: "contain",
+		},
+		titleContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			width: "100%",
+			paddingHorizontal: 20,
+		},
+		titleText: {
+			fontSize: 28,
+			fontWeight: "bold",
+			color: "white",
+			textShadowColor: "rgba(0, 0, 0, 0.2)",
+			textShadowOffset: { width: 1, height: 1 },
+			textShadowRadius: 2,
+			marginRight: 15,
+		},
+		reloadButton: {
+			width: 40,
+			height: 40,
+			borderRadius: 20,
+			backgroundColor: "rgba(255, 255, 255, 0.3)",
+			justifyContent: "center",
+			alignItems: "center",
+			borderWidth: 1,
+			borderColor: "rgba(255, 255, 255, 0.5)",
+		},
+		reloadButtonText: {
+			fontSize: 22,
+			fontWeight: "bold",
+			color: "white",
+		},
+		listContentContainer: {
+			paddingHorizontal: 10,
+			paddingTop: 12,
+			paddingBottom: 24,
+		},
+		formulaContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "flex-start",
+			backgroundColor: isDark ? "#22304A" : "#F4F9FB",
+			borderColor: isDark ? "#444" : "#C2C7CC", // Gris suave
+			borderWidth: 1,
+			borderRadius: 12,
+			marginVertical: 8,
+			marginHorizontal: 4,
+			paddingVertical: 14,
+			paddingHorizontal: 18,
+			minHeight: 60,
+			shadowColor: isDark ? "#000" : "#A1CEDC",
+			shadowOpacity: 0.1,
+			shadowOffset: { width: 0, height: 2 },
+			shadowRadius: 4,
+			elevation: 2,
+		},
+		formulaColor: {
+			fontSize: 20,
+			fontWeight: "500", // Igual que en stock
+			color: isDark ? "#fff" : "#222",
+			opacity: isDark ? 0.95 : 0.95, // Más suave
+		},
+		emptyContainer: {
+			padding: 32,
+			alignItems: "center",
+			justifyContent: "center",
+			marginTop: 32,
+		},
+		emptyText: {
+			textAlign: "center",
+			opacity: 0.7,
+			fontSize: 16,
+			color: isDark ? "#A1CEDC" : "#2E7D9B",
+		},
+		addButton: {
+			backgroundColor: "#2E7D9B",
+			paddingVertical: 10,
+			paddingHorizontal: 24,
+			borderRadius: 8,
+			alignSelf: "center",
+			shadowColor: "#000",
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.1,
+			shadowRadius: 4,
+			elevation: 2,
+		},
+		addButtonText: {
+			color: "white",
+			fontSize: 16,
+			fontWeight: "bold",
+		},
+	});
+
 	return (
 		<ThemedView style={styles.container}>
-			<View style={[styles.headerContainer, { backgroundColor: "#A1CEDC" }]}>
+			<View style={styles.header}>
 				<Image
 					source={require("@/assets/images/chemical.png")}
-					style={styles.headerImage}
+					style={styles.reactLogo}
 				/>
 				<View style={styles.titleContainer}>
-					<ThemedText style={styles.title}>
+					<ThemedText type="title" style={styles.titleText}>
 						Fórmulas
 					</ThemedText>
-					<TouchableOpacity
-						onPress={loadFormulas}
-						style={styles.refreshButton}
-						disabled={isLoading}
-					>
+					<TouchableOpacity onPress={loadFormulas} style={styles.reloadButton}>
 						{isLoading ? (
 							<ActivityIndicator size="small" color="white" />
 						) : (
-							<ThemedText style={styles.refreshButtonText}>
-								↻
-							</ThemedText>
+							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
 						)}
 					</TouchableOpacity>
 				</View>
 			</View>
 
 			{error ? (
-				<View style={styles.errorContainer}>
-					<ThemedText style={styles.errorText}>{error}</ThemedText>
+				<View style={styles.emptyContainer}>
+					<ThemedText style={styles.emptyText}>{error}</ThemedText>
 					<TouchableOpacity
 						onPress={loadFormulas}
-						style={[styles.retryButton, { backgroundColor: tintColor }]}
+						style={[styles.addButton, { backgroundColor: "#2E7D9B" }]}
 					>
-						<ThemedText style={[styles.retryButtonText, { color: textColor }]}>
-							Reintentar
-						</ThemedText>
+						<ThemedText style={styles.addButtonText}>Reintentar</ThemedText>
 					</TouchableOpacity>
 				</View>
 			) : (
@@ -138,15 +241,26 @@ export default function FormulasScreen() {
 								style={styles.formulaContainer}
 								onLongPress={() => confirmDeleteFormula(item)}
 							>
-								<View style={styles.formulaColorContainer}>
-									<ThemedText style={styles.formulaColor}>
-										{item.nombreColor.charAt(0).toUpperCase() + item.nombreColor.slice(1)}
+								<View style={{ flex: 1 }}>
+									<ThemedText
+										style={[
+											styles.formulaColor,
+											{
+												color: isDark ? "#fff" : "#222",
+												fontWeight: "500",
+												fontSize: 20,
+											},
+										]}
+									>
+										{item.nombreColor.charAt(0).toUpperCase() +
+											item.nombreColor.slice(1)}
 									</ThemedText>
 								</View>
 								<Ionicons
 									name="chevron-forward-outline"
-									size={24}
-									color="#fff"
+									size={26}
+									color={isDark ? "#fff" : "#222"}
+									style={{ marginLeft: 8, opacity: 0.7 }}
 								/>
 							</TouchableOpacity>
 						</Link>
@@ -154,7 +268,7 @@ export default function FormulasScreen() {
 					ListEmptyComponent={
 						!isLoading ? (
 							<View style={styles.emptyContainer}>
-								<ThemedText style={[styles.emptyText, { color: textColor }]}>
+								<ThemedText style={styles.emptyText}>
 									No hay fórmulas disponibles.
 								</ThemedText>
 							</View>
@@ -167,153 +281,12 @@ export default function FormulasScreen() {
 			<View style={{ alignItems: "flex-end", margin: 16 }}>
 				<Link href="/formulas/nueva-formula" asChild>
 					<TouchableOpacity style={styles.addButton}>
-						<ThemedText style={styles.addButtonText}>+ Añadir fórmula</ThemedText>
+						<ThemedText style={styles.addButtonText}>
+							+ Añadir fórmula
+						</ThemedText>
 					</TouchableOpacity>
 				</Link>
 			</View>
 		</ThemedView>
 	);
 }
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	headerContainer: {
-		width: "100%",
-		height: 180,
-		alignItems: "center",
-		justifyContent: "flex-end",
-		paddingBottom: 5,
-	},
-	headerImage: {
-		width: "80%",
-		height: "70%",
-		resizeMode: "contain",
-		marginBottom: -10,
-	},
-	titleContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		width: "100%",
-		paddingHorizontal: 20,
-	},
-	title: {
-		fontSize: 28,
-		fontWeight: "bold",
-		color: "white",
-		textShadowColor: "rgba(0, 0, 0, 0.2)",
-		textShadowOffset: { width: 1, height: 1 },
-		textShadowRadius: 2,
-		marginRight: 15,
-		paddingTop: 8,
-	},
-	refreshButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(255, 255, 255, 0.2)",
-		borderWidth: 1,
-		borderColor: "rgba(255, 255, 255, 0.3)",
-	},
-	refreshButtonText: {
-		fontSize: 22,
-		fontWeight: "bold",
-		color: "white",
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingBottom: 16,
-	},
-	loadingText: {
-		marginTop: 10,
-		fontSize: 16,
-	},
-	errorContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 20,
-	},
-	errorText: {
-		fontSize: 16,
-		color: "red",
-		textAlign: "center",
-		marginBottom: 10,
-	},
-	retryButton: {
-		paddingVertical: 10,
-		paddingHorizontal: 20,
-		borderRadius: 5,
-	},
-	retryButtonText: {
-		fontWeight: "bold",
-	},
-	listContentContainer: {
-		paddingHorizontal: 16,
-		paddingBottom: 16,
-		paddingTop: 16,
-	},
-	formulaContainer: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		padding: 15,
-		marginVertical: 6,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: "rgba(161, 206, 220, 0.3)",
-		shadowColor: "#000",
-		shadowOffset: {
-			width: 0,
-			height: 1,
-		},
-		shadowOpacity: 0.08,
-		shadowRadius: 2,
-		elevation: 2,
-		marginHorizontal: 16,
-		backgroundColor: "#2C3E50",
-	},
-	formulaColorContainer: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 6,
-	},
-	formulaColor: {
-		fontSize: 18,
-		fontWeight: "bold",
-		color: "#fff",
-	},
-	emptyContainer: {
-		padding: 24,
-		alignItems: "center",
-		justifyContent: "center",
-		marginTop: 20,
-	},
-	emptyText: {
-		textAlign: "center",
-		opacity: 0.7,
-		fontSize: 16,
-	},
-	addButton: {
-		backgroundColor: "#2E7D9B",
-		paddingVertical: 10,
-		paddingHorizontal: 24,
-		borderRadius: 8,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 2,
-	},
-	addButtonText: {
-		color: "white",
-		fontSize: 16,
-		fontWeight: "bold",
-	},
-});
