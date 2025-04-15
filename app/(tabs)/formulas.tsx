@@ -86,7 +86,7 @@ export default function FormulasScreen() {
 	const styles = StyleSheet.create({
 		container: {
 			flex: 1,
-			backgroundColor: isDark ? "#192734" : "#F4F9FB",
+			backgroundColor: isDark ? "#191919" : "#F4F9FB", // Igual que en stocks
 		},
 		header: {
 			backgroundColor: "#A1CEDC",
@@ -143,8 +143,8 @@ export default function FormulasScreen() {
 			flexDirection: "row",
 			alignItems: "center",
 			justifyContent: "flex-start",
-			backgroundColor: isDark ? "#22304A" : "#F4F9FB",
-			borderColor: isDark ? "#444" : "#C2C7CC", // Gris suave
+			backgroundColor: isDark ? "#222E39" : "#F4F9FB", // Igual que en detalle
+			borderColor: isDark ? "#444A" : "#C2C7CC", // Igual que en detalle
 			borderWidth: 1,
 			borderRadius: 12,
 			marginVertical: 8,
@@ -160,9 +160,9 @@ export default function FormulasScreen() {
 		},
 		formulaColor: {
 			fontSize: 20,
-			fontWeight: "500", // Igual que en stock
+			fontWeight: "500",
 			color: isDark ? "#fff" : "#222",
-			opacity: isDark ? 0.95 : 0.95, // Más suave
+			opacity: 0.95,
 		},
 		emptyContainer: {
 			padding: 32,

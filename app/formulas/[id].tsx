@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, ActivityIndicator, TouchableOpacity, Modal, View, TextInput, Button, Alert } from "react-native";
+import { StyleSheet, ActivityIndicator, TouchableOpacity, Modal, View, TextInput, Button, Alert, useColorScheme } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -29,6 +29,38 @@ export default function FormulaDetailScreen() {
 		cantidad: 0,
 		unidad: "gr",
 	});
+
+	const colorScheme = useColorScheme();
+	const isDark = colorScheme === "dark";
+
+	// --- Agrega la función de estilos dinámicos para ingredientes ---
+	const getIngredientStyles = (isDark: boolean) => ({
+		ingredientContainer: {
+			flexDirection: "row" as const,
+			justifyContent: "space-between" as const,
+			alignItems: "center" as const,
+			padding: 12,
+			marginVertical: 4,
+			borderRadius: 8,
+			backgroundColor: isDark ? "#222E39" : "#F4F9FB",
+			borderWidth: 1,
+			borderColor: isDark ? "#444A" : "#C2C7CC",
+		},
+		ingredientName: {
+			color: isDark ? "#fff" : "#222",
+			fontSize: 18,
+			fontWeight: 500 as const,
+			opacity: 0.95,
+		},
+		ingredientQuantity: {
+			color: isDark ? "#A1CEDC" : "#2E7D9B",
+			fontWeight: "bold" as const,
+			fontSize: 18,
+			opacity: 0.9,
+		},
+	});
+
+	const ingredientStyles = getIngredientStyles(isDark);
 
 	useEffect(() => {
 		if (id) {
@@ -171,14 +203,12 @@ export default function FormulaDetailScreen() {
 						key={`${formula?.id || "formula"}-${index}`}
 						onPress={() => handleIngredientPress(ingrediente, index)}
 					>
-						<ThemedView
-							style={styles.ingredientContainer}
-						>
-							<ThemedText style={styles.ingredientName}>{capitalizeFirstLetter(name)}</ThemedText>
-							<ThemedText style={styles.ingredientQuantity}>
+						<View style={ingredientStyles.ingredientContainer}>
+							<ThemedText style={ingredientStyles.ingredientName}>{capitalizeFirstLetter(name)}</ThemedText>
+							<ThemedText style={ingredientStyles.ingredientQuantity}>
 								{quantity} {unit}
 							</ThemedText>
-						</ThemedView>
+						</View>
 					</TouchableOpacity>
 				);
 			},
@@ -192,7 +222,7 @@ export default function FormulaDetailScreen() {
 	return (
 		<ThemedView style={styles.container}>
 			<ThemedText type="title" style={styles.title}>
-				{formula.nombreColor}
+				{formula ? capitalizeFirstLetter(formula.nombreColor) : ""}
 			</ThemedText>
 			<ThemedText style={styles.subtitle}>Ingredientes:</ThemedText>
 			{ingredientsContent}
@@ -306,24 +336,6 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 		marginTop: 15,
 		marginBottom: 12,
-	},
-	ingredientContainer: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		padding: 12,
-		marginVertical: 4,
-		borderRadius: 8,
-		backgroundColor: "#2C3E50",
-	},
-	ingredientName: {
-		color: "white",
-		fontSize: 18,
-	},
-	ingredientQuantity: {
-		color: "#A1CEDC",
-		fontWeight: "bold",
-		fontSize: 18,
 	},
 	errorText: {
 		color: "red",
