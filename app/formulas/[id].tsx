@@ -197,6 +197,106 @@ export default function FormulaDetailScreen() {
 
 	const modalStyles = getModalStyles(isDark);
 
+	// --- Función de estilos dinámicos para el modal de editar ingrediente ---
+	const getEditModalStyles = (isDark: boolean) => {
+		return {
+			modalOverlay: {
+				flex: 1,
+				justifyContent: "center" as import("react-native").ViewStyle["justifyContent"],
+				alignItems: "center" as import("react-native").ViewStyle["alignItems"],
+				backgroundColor: isDark
+					? "rgba(0, 0, 0, 0.7)"
+					: "rgba(44, 62, 80, 0.3)",
+			},
+			modalContent: {
+				width: "85%" as import("react-native").ViewStyle["width"],
+				backgroundColor: isDark ? "#1E2A38" : "#F4F9FB",
+				borderRadius: 12,
+				padding: 20,
+				shadowColor: isDark ? "#000" : "#A1CEDC",
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.18,
+				shadowRadius: 8,
+				elevation: 6,
+			},
+			modalTitle: {
+				fontSize: 20,
+				fontWeight: "bold" as import("react-native").TextStyle["fontWeight"],
+				color: isDark ? "#A1CEDC" : "#2E7D9B",
+				marginBottom: 16,
+				textAlign: "center" as import("react-native").TextStyle["textAlign"],
+			},
+			label: {
+				fontSize: 16,
+				fontWeight: "600" as import("react-native").TextStyle["fontWeight"],
+				color: isDark ? "#A1CEDC" : "#2E7D9B",
+				marginBottom: 6,
+			},
+			input: {
+				backgroundColor: isDark ? "#25344B" : "#F4F9FB",
+				color: isDark ? "#F4F9FB" : "#2E7D9B",
+				borderColor: isDark ? "#2E7D9B" : "#A1CEDC",
+				borderWidth: 1,
+				borderRadius: 8,
+				padding: 10,
+				marginBottom: 12,
+				fontSize: 16,
+			},
+			unitButtonsContainer: {
+				flexDirection: "row" as import("react-native").ViewStyle["flexDirection"],
+				justifyContent: "space-between" as import("react-native").ViewStyle["justifyContent"],
+				marginBottom: 20,
+			},
+			unitButton: {
+				flex: 1,
+				padding: 10,
+				borderRadius: 8,
+				alignItems: "center" as import("react-native").ViewStyle["alignItems"],
+				marginHorizontal: 4,
+				borderWidth: 1,
+				borderColor: isDark ? "#2E7D9B" : "#A1CEDC",
+			},
+			selectedUnitButton: {
+				backgroundColor: isDark ? "#2E7D9B" : "#A1CEDC",
+			},
+			unitButtonText: {
+				color: isDark ? "#FFFFFF" : "#2E7D9B",
+				fontSize: 16,
+			},
+			selectedUnitButtonText: {
+				fontWeight: "bold" as import("react-native").TextStyle["fontWeight"],
+			},
+			buttonContainer: {
+				flexDirection: "row" as import("react-native").ViewStyle["flexDirection"],
+				justifyContent: "space-between" as import("react-native").ViewStyle["justifyContent"],
+				marginTop: 10,
+			},
+			button: {
+				flex: 1,
+				padding: 12,
+				borderRadius: 8,
+				alignItems: "center" as import("react-native").ViewStyle["alignItems"],
+				marginHorizontal: 5,
+			},
+			saveButton: {
+				backgroundColor: isDark ? "#2E7D9B" : "#3780B8",
+			},
+			deleteButton: {
+				backgroundColor: "#E74C3C",
+			},
+			cancelButton: {
+				backgroundColor: isDark ? "#7F8C8D" : "#C2C7CC",
+			},
+			buttonText: {
+				color: "#FFFFFF",
+				fontWeight: "bold" as import("react-native").TextStyle["fontWeight"],
+				fontSize: 16,
+			},
+		};
+	};
+
+	const editModalStyles = getEditModalStyles(isDark);
+
 	useEffect(() => {
 		if (id) {
 			fetchFormula();
@@ -438,15 +538,15 @@ export default function FormulaDetailScreen() {
 				visible={modalVisible}
 				onRequestClose={() => setModalVisible(false)}
 			>
-				<View style={styles.modalOverlay}>
-					<View style={styles.modalContent}>
-						<ThemedText style={styles.modalTitle}>
+				<View style={editModalStyles.modalOverlay}>
+					<View style={editModalStyles.modalContent}>
+						<ThemedText style={editModalStyles.modalTitle}>
 							Editar Ingrediente
 						</ThemedText>
 
-						<ThemedText style={styles.label}>Nombre:</ThemedText>
+						<ThemedText style={editModalStyles.label}>Nombre:</ThemedText>
 						<TextInput
-							style={styles.input}
+							style={editModalStyles.input}
 							value={editedIngredient.nombre}
 							onChangeText={(text) =>
 								setEditedIngredient({ ...editedIngredient, nombre: text })
@@ -454,9 +554,9 @@ export default function FormulaDetailScreen() {
 							placeholder="Nombre del ingrediente"
 						/>
 
-						<ThemedText style={styles.label}>Cantidad:</ThemedText>
+						<ThemedText style={editModalStyles.label}>Cantidad:</ThemedText>
 						<TextInput
-							style={styles.input}
+							style={editModalStyles.input}
 							value={editedIngredient.cantidad?.toString() || ""}
 							onChangeText={(text) =>
 								setEditedIngredient({
@@ -468,15 +568,15 @@ export default function FormulaDetailScreen() {
 							placeholder="Cantidad"
 						/>
 
-						<ThemedText style={styles.label}>Unidad:</ThemedText>
-						<View style={styles.unitButtonsContainer}>
+						<ThemedText style={editModalStyles.label}>Unidad:</ThemedText>
+						<View style={editModalStyles.unitButtonsContainer}>
 							{["gr", "kg", "L"].map((unit) => (
 								<TouchableOpacity
 									key={unit}
 									style={[
-										styles.unitButton,
+										editModalStyles.unitButton,
 										editedIngredient.unidad === unit &&
-											styles.selectedUnitButton,
+											editModalStyles.selectedUnitButton,
 									]}
 									onPress={() =>
 										setEditedIngredient({ ...editedIngredient, unidad: unit })
@@ -484,9 +584,9 @@ export default function FormulaDetailScreen() {
 								>
 									<ThemedText
 										style={[
-											styles.unitButtonText,
+											editModalStyles.unitButtonText,
 											editedIngredient.unidad === unit &&
-												styles.selectedUnitButtonText,
+												editModalStyles.selectedUnitButtonText,
 										]}
 									>
 										{unit}
@@ -495,26 +595,26 @@ export default function FormulaDetailScreen() {
 							))}
 						</View>
 
-						<View style={styles.buttonContainer}>
+						<View style={editModalStyles.buttonContainer}>
 							<TouchableOpacity
-								style={[styles.button, styles.saveButton]}
+								style={[editModalStyles.button, editModalStyles.saveButton]}
 								onPress={handleUpdateIngredient}
 							>
-								<ThemedText style={styles.buttonText}>Guardar</ThemedText>
+								<ThemedText style={editModalStyles.buttonText}>Guardar</ThemedText>
 							</TouchableOpacity>
 
 							<TouchableOpacity
-								style={[styles.button, styles.deleteButton]}
+								style={[editModalStyles.button, editModalStyles.deleteButton]}
 								onPress={handleDeleteIngredient}
 							>
-								<ThemedText style={styles.buttonText}>Eliminar</ThemedText>
+								<ThemedText style={editModalStyles.buttonText}>Eliminar</ThemedText>
 							</TouchableOpacity>
 
 							<TouchableOpacity
-								style={[styles.button, styles.cancelButton]}
+								style={[editModalStyles.button, editModalStyles.cancelButton]}
 								onPress={() => setModalVisible(false)}
 							>
-								<ThemedText style={styles.buttonText}>Cancelar</ThemedText>
+								<ThemedText style={editModalStyles.buttonText}>Cancelar</ThemedText>
 							</TouchableOpacity>
 						</View>
 					</View>

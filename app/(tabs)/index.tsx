@@ -455,6 +455,7 @@ export default function HomeScreen() {
 									renderItem={renderItem}
 									contentContainerStyle={styles.flatListContent}
 									ListFooterComponent={<View style={styles.listFooter} />}
+									showsVerticalScrollIndicator={false}
 								/>
 							)}
 
