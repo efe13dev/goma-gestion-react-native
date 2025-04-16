@@ -9,6 +9,7 @@ import {
 	Alert,
 	useColorScheme,
 	Text,
+	ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
@@ -529,7 +530,16 @@ export default function FormulaDetailScreen() {
 					</Text>
 				</TouchableOpacity>
 			</View>
-			{ingredientsContent}
+			{/* Hacer scroll si la lista de ingredientes es muy larga */}
+			<View style={{ flex: 1, minHeight: 80, marginBottom: 24 }}>
+				<ScrollView
+					style={{ flexGrow: 0 }}
+					contentContainerStyle={{ paddingBottom: 60 }}
+					showsVerticalScrollIndicator={false}
+				>
+					{ingredientsContent}
+				</ScrollView>
+			</View>
 
 			{/* Modal para editar o eliminar ingrediente */}
 			<Modal
