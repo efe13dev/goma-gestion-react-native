@@ -30,7 +30,6 @@ function capitalizeFirstLetter(text: string) {
 
 export default function FormulaDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
-	const router = useRouter();
 	const [formula, setFormula] = useState<Formula | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -57,9 +56,11 @@ export default function FormulaDetailScreen() {
 	// --- Agrega la función de estilos dinámicos para ingredientes ---
 	const getIngredientStyles = (isDark: boolean) => ({
 		ingredientContainer: {
-			flexDirection: "row" as const,
-			justifyContent: "space-between" as const,
-			alignItems: "center" as const,
+			flexDirection: "row" as import("react-native").ViewStyle["flexDirection"],
+			justifyContent: "space-between" as import(
+				"react-native"
+			).ViewStyle["justifyContent"],
+			alignItems: "center" as import("react-native").ViewStyle["alignItems"],
 			padding: 12,
 			marginVertical: 4,
 			borderRadius: 8,
@@ -70,18 +71,131 @@ export default function FormulaDetailScreen() {
 		ingredientName: {
 			color: isDark ? "#fff" : "#222",
 			fontSize: 18,
-			fontWeight: 500 as const,
+			fontWeight: "500" as import("react-native").TextStyle["fontWeight"],
 			opacity: 0.95,
 		},
 		ingredientQuantity: {
 			color: isDark ? "#A1CEDC" : "#2E7D9B",
-			fontWeight: "bold" as const,
+			fontWeight: "bold" as import("react-native").TextStyle["fontWeight"],
 			fontSize: 18,
 			opacity: 0.9,
 		},
 	});
 
 	const ingredientStyles = getIngredientStyles(isDark);
+
+	// --- Función de estilos dinámicos para el modal de añadir ingrediente ---
+	const getModalStyles = (isDark: boolean) => {
+		return {
+			modalOverlay: {
+				flex: 1,
+				justifyContent: "center" as import(
+					"react-native"
+				).ViewStyle["justifyContent"],
+				alignItems: "center" as import("react-native").ViewStyle["alignItems"],
+				backgroundColor: isDark
+					? "rgba(0, 0, 0, 0.7)"
+					: "rgba(44, 62, 80, 0.3)",
+			},
+			modalContent: {
+				width: "85%" as import("react-native").ViewStyle["width"],
+				backgroundColor: isDark ? "#1E2A38" : "#F4F9FB",
+				borderRadius: 12,
+				padding: 20,
+				shadowColor: isDark ? "#000" : "#A1CEDC",
+				shadowOffset: {
+					width: 0,
+					height: 2,
+				},
+				shadowOpacity: 0.25,
+				shadowRadius: 4,
+				elevation: 5,
+			},
+			modalTitle: {
+				fontSize: 22,
+				fontWeight: "bold" as import("react-native").TextStyle["fontWeight"],
+				marginBottom: 20,
+				textAlign: "center" as import("react-native").TextStyle["textAlign"],
+				color: isDark ? "#A1CEDC" : "#2E7D9B",
+			},
+			label: {
+				fontSize: 16,
+				marginBottom: 5,
+				color: isDark ? "#FFFFFF" : "#2E7D9B",
+			},
+			input: {
+				backgroundColor: isDark ? "#2C3E50" : "#fff",
+				borderRadius: 8,
+				padding: 12,
+				marginBottom: 15,
+				color: isDark ? "#FFFFFF" : "#2E7D9B",
+				fontSize: 16,
+				borderWidth: 1,
+				borderColor: isDark ? "#2E7D9B" : "#A1CEDC",
+			},
+			unitButtonsContainer: {
+				flexDirection: "row" as import(
+					"react-native"
+				).ViewStyle["flexDirection"],
+				justifyContent: "space-between" as import(
+					"react-native"
+				).ViewStyle["justifyContent"],
+				marginBottom: 20,
+			},
+			unitButton: {
+				flex: 1,
+				padding: 10,
+				margin: 5,
+				borderRadius: 8,
+				backgroundColor: isDark ? "#2C3E50" : "#F4F9FB",
+				alignItems: "center" as import("react-native").ViewStyle["alignItems"],
+				borderWidth: 1,
+				borderColor: isDark ? "#2E7D9B" : "#A1CEDC",
+			},
+			selectedUnitButton: {
+				backgroundColor: isDark ? "#2E7D9B" : "#A1CEDC",
+			},
+			unitButtonText: {
+				color: isDark ? "#FFFFFF" : "#2E7D9B",
+				fontSize: 16,
+			},
+			selectedUnitButtonText: {
+				fontWeight: "bold" as import("react-native").TextStyle["fontWeight"],
+			},
+			buttonContainer: {
+				flexDirection: "row" as import(
+					"react-native"
+				).ViewStyle["flexDirection"],
+				justifyContent: "space-between" as import(
+					"react-native"
+				).ViewStyle["justifyContent"],
+				marginTop: 10,
+			},
+			button: {
+				flex: 1,
+				padding: 12,
+				borderRadius: 8,
+				alignItems: "center" as import("react-native").ViewStyle["alignItems"],
+				marginHorizontal: 5,
+			},
+			saveButton: {
+				backgroundColor: isDark ? "#2E7D9B" : "#3780B8",
+			},
+			deleteButton: {
+				backgroundColor: "#E74C3C",
+			},
+			cancelButton: {
+				backgroundColor: isDark ? "#7F8C8D" : "#C2C7CC",
+			},
+			buttonText: {
+				color: "#FFFFFF",
+				fontWeight: "bold" as import("react-native").TextStyle["fontWeight"],
+				fontSize: 16,
+			},
+		};
+	};
+
+	const modalStyles = getModalStyles(isDark);
 
 	useEffect(() => {
 		if (id) {
@@ -414,12 +528,14 @@ export default function FormulaDetailScreen() {
 				visible={addModalVisible}
 				onRequestClose={() => setAddModalVisible(false)}
 			>
-				<View style={styles.modalOverlay}>
-					<View style={styles.modalContent}>
-						<ThemedText style={styles.modalTitle}>Nuevo Ingrediente</ThemedText>
-						<ThemedText style={styles.label}>Nombre:</ThemedText>
+				<View style={modalStyles.modalOverlay}>
+					<View style={modalStyles.modalContent}>
+						<ThemedText style={modalStyles.modalTitle}>
+							Nuevo Ingrediente
+						</ThemedText>
+						<ThemedText style={modalStyles.label}>Nombre:</ThemedText>
 						<TextInput
-							style={styles.input}
+							style={modalStyles.input}
 							value={newIngredient.nombre}
 							onChangeText={(text) =>
 								setNewIngredient({ ...newIngredient, nombre: text })
@@ -427,9 +543,9 @@ export default function FormulaDetailScreen() {
 							placeholder="Nombre del ingrediente"
 							placeholderTextColor={isDark ? "#fff" : "#888"}
 						/>
-						<ThemedText style={styles.label}>Cantidad:</ThemedText>
+						<ThemedText style={modalStyles.label}>Cantidad:</ThemedText>
 						<TextInput
-							style={styles.input}
+							style={modalStyles.input}
 							value={newIngredient.cantidad}
 							onChangeText={(text) => {
 								// Solo permitir números positivos
@@ -440,14 +556,15 @@ export default function FormulaDetailScreen() {
 							placeholderTextColor={isDark ? "#fff" : "#888"}
 							keyboardType="numeric"
 						/>
-						<ThemedText style={styles.label}>Unidad:</ThemedText>
-						<View style={styles.unitButtonsContainer}>
+						<ThemedText style={modalStyles.label}>Unidad:</ThemedText>
+						<View style={modalStyles.unitButtonsContainer}>
 							{["gr", "kg", "L"].map((unit) => (
 								<TouchableOpacity
 									key={unit}
 									style={[
-										styles.unitButton,
-										newIngredient.unidad === unit && styles.selectedUnitButton,
+										modalStyles.unitButton,
+										newIngredient.unidad === unit &&
+											modalStyles.selectedUnitButton,
 									]}
 									onPress={() =>
 										setNewIngredient({ ...newIngredient, unidad: unit })
@@ -455,9 +572,9 @@ export default function FormulaDetailScreen() {
 								>
 									<ThemedText
 										style={[
-											styles.unitButtonText,
+											modalStyles.unitButtonText,
 											newIngredient.unidad === unit &&
-												styles.selectedUnitButtonText,
+												modalStyles.selectedUnitButtonText,
 										]}
 									>
 										{unit}
@@ -465,26 +582,18 @@ export default function FormulaDetailScreen() {
 								</TouchableOpacity>
 							))}
 						</View>
-						<View
-							style={{
-								flexDirection: "row",
-								justifyContent: "space-between",
-								marginTop: 16,
-							}}
-						>
+						<View style={modalStyles.buttonContainer}>
 							<TouchableOpacity
-								style={[styles.button, { backgroundColor: "#2E7D9B" }]}
+								style={[modalStyles.button, modalStyles.saveButton]}
 								onPress={handleSaveNewIngredient}
 							>
-								<Text style={{ color: "white", fontWeight: "bold" }}>
-									Guardar
-								</Text>
+								<ThemedText style={modalStyles.buttonText}>Guardar</ThemedText>
 							</TouchableOpacity>
 							<TouchableOpacity
-								style={[styles.button, { backgroundColor: "#B0B0B0" }]}
+								style={[modalStyles.button, modalStyles.cancelButton]}
 								onPress={() => setAddModalVisible(false)}
 							>
-								<Text style={{ color: "#222" }}>Cancelar</Text>
+								<ThemedText style={modalStyles.buttonText}>Cancelar</ThemedText>
 							</TouchableOpacity>
 						</View>
 					</View>
@@ -521,7 +630,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
+		backgroundColor: "rgba(0, 0, 0, 0.9)",
 	},
 	modalContent: {
 		width: "85%",
