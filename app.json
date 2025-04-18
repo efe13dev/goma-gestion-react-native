@@ -4,7 +4,7 @@
 		"slug": "goma-gestion-react-native",
 		"version": "1.1.2",
 		"orientation": "portrait",
-		"icon": "./assets/images/splash-init.png",
+		"icon": "./assets/images/ic_launcher.png",
 		"scheme": "myapp",
 		"userInterfaceStyle": "automatic",
 		"newArchEnabled": true,
@@ -13,7 +13,7 @@
 		},
 		"android": {
 			"adaptiveIcon": {
-				"foregroundImage": "./assets/images/adaptiveIcon.png",
+				"foregroundImage": "./assets/images/ic_launcher_adaptive_fore.png",
 				"backgroundColor": "#ffffff"
 			},
 			"package": "com.eefee.gomagestionreactnative"
