@@ -13,7 +13,7 @@
 		},
 		"android": {
 			"adaptiveIcon": {
-				"foregroundImage": "./assets/images/splash-init.png",
+				"foregroundImage": "./assets/images/adaptiveIcon.png",
 				"backgroundColor": "#ffffff"
 			},
 			"package": "com.eefee.gomagestionreactnative"

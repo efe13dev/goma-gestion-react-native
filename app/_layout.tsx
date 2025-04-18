@@ -32,9 +32,11 @@ export default function RootLayout() {
 				console.error(`Error al inicializar los datos de fórmulas: ${error}`);
 			}
 
-			// Ocultar la pantalla de splash después de cargar los datos
+			// Esperar 2 segundos antes de ocultar el splash
 			if (loaded) {
-				SplashScreen.hideAsync();
+				setTimeout(() => {
+					SplashScreen.hideAsync();
+				}, 2000);
 			}
 		};
 
