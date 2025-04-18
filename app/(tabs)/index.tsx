@@ -6,7 +6,6 @@ import {
 	TouchableOpacity,
 	View,
 	Animated,
-	Easing,
 	Alert, // Import Alert from react-native
 } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
@@ -15,7 +14,7 @@ import {
 	getStock,
 	addColor,
 	updateColor,
-	deleteColor,
+	deleteColor as apiDeleteColor,
 	getColorOrder,
 	updateColorOrder,
 } from "@/api/stockApi";
@@ -39,7 +38,7 @@ export default function HomeScreen() {
 	const [newColorName, setNewColorName] = useState("");
 	const [newColorQuantity, setNewColorQuantity] = useState("");
 	const [showForm, setShowForm] = useState(false);
-	const [colorOrder, setColorOrder] = useState<string[]>([]);
+	const [_colorOrder, setColorOrder] = useState<string[]>([]);
 
 	// Función para cargar los datos
 	const loadData = useCallback(async () => {
@@ -115,9 +114,7 @@ export default function HomeScreen() {
 					quantity: Math.max(0, colorToUpdate.quantity + increment),
 				};
 				setInventory((prev) =>
-					prev.map((color) =>
-						color.id === id ? updatedColor : color
-					)
+					prev.map((color) => (color.id === id ? updatedColor : color)),
 				);
 				await updateColor(updatedColor);
 			} catch (err) {
@@ -179,11 +176,11 @@ export default function HomeScreen() {
 		}
 	};
 
-	const deleteColor = useCallback(
+	const handleDeleteColor = useCallback(
 		async (name: string) => {
 			try {
 				setIsLoading(true);
-				await deleteColor(name);
+				await apiDeleteColor(name);
 				await loadData();
 				showSuccess("¡Eliminado!", `Color ${name} eliminado`);
 			} catch (err) {
@@ -206,12 +203,12 @@ export default function HomeScreen() {
 					{
 						text: "Eliminar",
 						style: "destructive",
-						onPress: () => deleteColor(color.name),
+						onPress: () => handleDeleteColor(color.name),
 					},
 				],
 			);
 		},
-		[deleteColor],
+		[handleDeleteColor],
 	);
 
 	const reloadData = () => {
@@ -458,12 +455,6 @@ export default function HomeScreen() {
 									showsVerticalScrollIndicator={false}
 								/>
 							)}
-
-							{inventory.length > 0 && (
-								<ThemedText style={styles.helpText}>
-									Mantener presionado un color para arrastrarlo y reordenarlo
-								</ThemedText>
-							)}
 						</View>
 					)}
 				</View>
@@ -670,13 +661,7 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		opacity: 0.6,
 	},
-	helpText: {
-		textAlign: "center",
-		marginTop: 16,
-		fontSize: 14,
-		opacity: 0.7,
-		fontStyle: "italic",
-	},
+
 	dragHandle: {
 		marginRight: 12,
 		padding: 5,
