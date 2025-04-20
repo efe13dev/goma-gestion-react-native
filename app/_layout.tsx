@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { StyleSheet } from "react-native";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import Toast from 'react-native-toast-message';
 // import { cargarFormulas } from "@/data/formulas";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -73,6 +74,7 @@ export default function RootLayout() {
 					}}
 				/>
 			</Stack>
+			<Toast />
 			<StatusBar style="auto" />
 		</ThemeProvider>
 	);

@@ -11,7 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { addFormula } from "@/api/formulasApi";
+import { addFormula, getFormulas } from "@/api/formulasApi";
 import { showSuccess, showError } from "@/utils/toast";
 import { useColorScheme } from "react-native";
 import uuid from "react-native-uuid";
@@ -82,8 +82,20 @@ export default function NuevaFormulaScreen() {
 			);
 			return;
 		}
+
+		// Validar si ya existe una fórmula con el mismo nombre (ignorando mayúsculas y espacios)
 		setIsLoading(true);
 		try {
+			const formulasExistentes = await getFormulas();
+			const existe = formulasExistentes.some(
+				(f) => f.nombreColor.trim().toLowerCase() === nombreColor.trim().toLowerCase()
+			);
+			if (existe) {
+				showError("Error", `La fórmula '${nombreColor}' ya existe.`);
+				setIsLoading(false);
+				return;
+			}
+
 			await addFormula({
 				id: uuid.v4() as string,
 				nombreColor,

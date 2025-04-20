@@ -136,6 +136,16 @@ export default function HomeScreen() {
 			return;
 		}
 
+		// Validar si el color ya existe (por nombre, ignorando mayúsculas/minúsculas y espacios)
+		const exists = inventory.some(
+			(color) =>
+				color.name.trim().toLowerCase() === newColorName.trim().toLowerCase(),
+		);
+		if (exists) {
+			showError("Error", `El color '${newColorName}' ya existe.`);
+			return;
+		}
+
 		// Validate that the quantity is a valid number
 		let quantity = 0;
 		if (newColorQuantity.trim()) {
