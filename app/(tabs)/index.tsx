@@ -1,15 +1,27 @@
+import React, { useState, useEffect, useCallback } from "react";
 import {
-	ActivityIndicator,
-	Image,
-	StyleSheet,
-	TextInput,
-	TouchableOpacity,
 	View,
-	Animated,
-	Alert, // Import Alert from react-native
+	StyleSheet,
+	ScrollView,
+	RefreshControl,
+	Image,
 } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import {
+	Appbar,
+	Card,
+	IconButton,
+	Chip,
+	Button,
+	Text,
+	Dialog,
+	Portal,
+	TextInput,
+	Snackbar,
+	useTheme,
+	FAB,
+	Surface,
+	ActivityIndicator as PaperActivityIndicator,
+} from "react-native-paper";
 import {
 	getStock,
 	addColor,
@@ -19,7 +31,6 @@ import {
 	updateColorOrder,
 } from "@/api/stockApi";
 import type { RubberColor } from "@/types/colors";
-import { useState, useEffect, useRef, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import DraggableFlatList, {
 	ScaleDecorator,
@@ -28,21 +39,32 @@ import {
 	GestureHandlerRootView,
 	Swipeable,
 } from "react-native-gesture-handler";
-import { showError, showSuccess } from "@/utils/toast"; // Removed showConfirmation
+import { showError, showSuccess } from "@/utils/toast";
 
 export default function HomeScreen() {
+	const theme = useTheme();
 	const [inventory, setInventory] = useState<RubberColor[]>([]);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [newColorName, setNewColorName] = useState("");
 	const [newColorQuantity, setNewColorQuantity] = useState("");
+	const [dialogVisible, setDialogVisible] = useState(false);
 	const [showForm, setShowForm] = useState(false);
+	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+	const [colorToDelete, setColorToDelete] = useState<RubberColor | null>(null);
 	const [_colorOrder, setColorOrder] = useState<string[]>([]);
+	const [snackbarVisible, setSnackbarVisible] = useState(false);
+	const [snackbarMessage, setSnackbarMessage] = useState("");
 
 	// Función para cargar los datos
-	const loadData = useCallback(async () => {
-		setIsLoading(true);
+	const loadData = useCallback(async (showRefresh = false) => {
+		if (showRefresh) {
+			setRefreshing(true);
+		} else {
+			setIsLoading(true);
+		}
 		setError(null);
 		try {
 			const data = await getStock();
@@ -89,6 +111,7 @@ export default function HomeScreen() {
 			console.error("Error loading data:", err);
 		} finally {
 			setIsLoading(false);
+			setRefreshing(false);
 		}
 	}, []);
 
@@ -171,7 +194,7 @@ export default function HomeScreen() {
 			// Clear the form
 			setNewColorName("");
 			setNewColorQuantity("");
-			setShowForm(false);
+			setDialogVisible(false);
 			// Reload data
 			await loadData();
 			showSuccess("¡Añadido!", `Color ${newColorName} agregado`);
@@ -205,24 +228,22 @@ export default function HomeScreen() {
 
 	const confirmDeleteColor = useCallback(
 		(color: RubberColor) => {
-			Alert.alert(
-				"Eliminar Color",
-				`¿Está seguro que desea eliminar ${color.name}?`,
-				[
-					{ text: "Cancelar", style: "cancel" },
-					{
-						text: "Eliminar",
-						style: "destructive",
-						onPress: () => handleDeleteColor(color.name),
-					},
-				],
-			);
+			setColorToDelete(color);
+			setDeleteDialogVisible(true);
 		},
-		[handleDeleteColor],
+		[],
 	);
 
+	const handleConfirmDelete = async () => {
+		if (colorToDelete) {
+			setDeleteDialogVisible(false);
+			await handleDeleteColor(colorToDelete.name);
+			setColorToDelete(null);
+		}
+	};
+
 	const reloadData = () => {
-		loadData();
+		loadData(true);
 	};
 
 	// Función para manejar el reordenamiento de colores
@@ -241,7 +262,7 @@ export default function HomeScreen() {
 		}
 	};
 
-	// Renderizar cada elemento de la lista
+	// Renderizar cada elemento de la lista con Material Design 3
 	const renderItem = useCallback(
 		({
 			item,
@@ -252,223 +273,228 @@ export default function HomeScreen() {
 			drag: () => void;
 			isActive: boolean;
 		}) => {
-			const handleAdjustQuantity = (id: string, increment: number) => {
-				adjustQuantity(id, increment);
-			};
-
-			// Renderizar acciones de deslizamiento (eliminar)
-			const renderRightActions = (
-				progress: Animated.AnimatedInterpolation<number>,
-			) => {
-				const trans = progress.interpolate({
-					inputRange: [0, 1],
-					outputRange: [100, 0],
-				});
-
-				return (
-					<Animated.View
-						style={[
-							styles.deleteAction,
-							{
-								transform: [{ translateX: trans }],
-							},
-						]}
-					>
-						<TouchableOpacity
-							style={styles.deleteActionContent}
-							onPress={() => confirmDeleteColor(item)}
-						>
-							<ThemedText style={styles.deleteActionText}>Eliminar</ThemedText>
-						</TouchableOpacity>
-					</Animated.View>
-				);
-			};
-
 			return (
 				<ScaleDecorator>
-					<Swipeable
-						renderRightActions={renderRightActions}
-						enabled={!isActive}
+					<Card
+						style={styles.colorCard}
+						mode="elevated"
+						elevation={isActive ? 3 : 1}
+						onLongPress={drag}
 					>
-						<ThemedView
-							style={[
-								styles.colorRow,
-								isActive && { opacity: 0.7, elevation: 4 },
-							]}
-						>
-							<TouchableOpacity
-								onLongPress={drag}
-								disabled={isActive}
-								style={styles.dragHandle}
-							>
-								<ThemedText style={styles.dragHandleText}>≡</ThemedText>
-							</TouchableOpacity>
-
-							<TouchableOpacity
-								style={styles.colorNameContainer}
-								onPress={() =>
-									setSelectedId(selectedId === item.id ? null : item.id)
-								}
-							>
-								<ThemedText style={styles.colorName}>
-									{item.name.charAt(0).toUpperCase() + item.name.slice(1)}
-								</ThemedText>
-							</TouchableOpacity>
-
-							<View style={styles.quantityContainer}>
-								{selectedId === item.id ? (
-									<>
-										<TouchableOpacity
-											style={styles.button}
-											onPress={() => handleAdjustQuantity(item.id, -1)}
-										>
-											<ThemedText style={styles.buttonText}>-</ThemedText>
-										</TouchableOpacity>
-
-										<ThemedText style={styles.quantity}>
-											{item.quantity}
-										</ThemedText>
-
-										<TouchableOpacity
-											style={styles.button}
-											onPress={() => handleAdjustQuantity(item.id, 1)}
-										>
-											<ThemedText style={styles.buttonText}>+</ThemedText>
-										</TouchableOpacity>
-									</>
-								) : (
-									<ThemedText style={styles.quantity}>
+						<Card.Content>
+							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+								<IconButton
+									icon="drag"
+									size={24}
+									onPressIn={drag}
+									disabled={isActive}
+									style={{ marginLeft: -8 }}
+								/>
+								<View style={{ flex: 1, marginLeft: 8 }}>
+									<Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 4 }}>
+										{item.name}
+									</Text>
+									<Chip
+										mode="outlined"
+										compact
+										style={{ marginTop: 4 }}
+									>
+										Cantidad: {item.quantity}
+									</Chip>
+								</View>
+								<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+									<IconButton
+										icon="minus-circle"
+										size={24}
+										onPress={() => adjustQuantity(item.id, -1)}
+										mode="contained-tonal"
+									/>
+									<Text variant="headlineSmall" style={{ marginHorizontal: 8 }}>
 										{item.quantity}
-									</ThemedText>
-								)}
+									</Text>
+									<IconButton
+										icon="plus-circle"
+										size={24}
+										onPress={() => adjustQuantity(item.id, 1)}
+										mode="contained-tonal"
+									/>
+									<IconButton
+										icon="delete"
+										size={24}
+										onPress={() => confirmDeleteColor(item)}
+										iconColor={theme.colors.error}
+									/>
+								</View>
 							</View>
-						</ThemedView>
-					</Swipeable>
+						</Card.Content>
+					</Card>
 				</ScaleDecorator>
 			);
 		},
-		[selectedId, adjustQuantity, confirmDeleteColor],
+		[adjustQuantity, confirmDeleteColor, theme],
 	);
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
-			<View style={styles.container}>
-				{/* Header visual estilo Fórmulas */}
-				<View style={styles.header}>
-					<Image
-						source={require("../../assets/images/palot.png")}
-						style={styles.reactLogo}
-						resizeMode="contain"
+			<Surface style={styles.container}>
+				{/* Appbar con Material Design 3 */}
+				<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+					<Appbar.Content title="Stock" titleStyle={styles.appBarTitle} />
+					<Appbar.Action 
+						icon={refreshing ? "loading" : "refresh"} 
+						onPress={reloadData}
+						disabled={refreshing}
 					/>
-					<View style={styles.titleContainer}>
-						<ThemedText style={styles.titleText}>Stock</ThemedText>
-						<TouchableOpacity onPress={reloadData} style={styles.reloadButton}>
-							{isLoading ? (
-								<ActivityIndicator size="small" color="white" />
-							) : (
-								<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
-							)}
-						</TouchableOpacity>
+				</Appbar.Header>
+
+				{/* Contenido principal */}
+				{error ? (
+					<ScrollView 
+						style={styles.content}
+						contentContainerStyle={{ paddingBottom: 16 }}
+						refreshControl={
+							<RefreshControl
+								refreshing={refreshing}
+								onRefresh={reloadData}
+								colors={[theme.colors.primary]}
+							/>
+						}
+					>
+						<Card style={styles.errorCard} mode="outlined">
+							<Card.Content>
+								<Text variant="bodyLarge" style={styles.errorText}>
+									{error}
+								</Text>
+							</Card.Content>
+							<Card.Actions>
+								<Button mode="contained" onPress={reloadData}>
+									Reintentar
+								</Button>
+							</Card.Actions>
+						</Card>
+					</ScrollView>
+				) : isLoading ? (
+					<View style={styles.loadingContainer}>
+						<PaperActivityIndicator 
+							size="large" 
+							color={theme.colors.primary} 
+						/>
+						<Text variant="bodyLarge" style={styles.loadingText}>
+							Cargando stock...
+						</Text>
 					</View>
-				</View>
-
-				{/* Contenido principal, incluyendo loader o lista */}
-				<View style={styles.content}>
-					{error ? (
-						<View style={styles.emptyContainer}>
-							<ThemedText style={styles.emptyText}>{error}</ThemedText>
-							<TouchableOpacity
-								onPress={reloadData}
-								style={[styles.addButton, { backgroundColor: "#2E7D9B" }]}
-							>
-								<ThemedText style={styles.addButtonText}>Reintentar</ThemedText>
-							</TouchableOpacity>
-						</View>
-					) : isLoading ? (
-						<View
-							style={[
-								styles.loadingContainer,
-								{ flex: 1, justifyContent: "center", alignItems: "center" },
-							]}
-						>
-							<ActivityIndicator size="large" color="#2E7D9B" />
-							<ThemedText
-								style={{
-									marginTop: 14,
-									color: "#2E7D9B",
-									fontWeight: "bold",
-									fontSize: 18,
-								}}
-							>
-								Cargando stock...
-							</ThemedText>
-						</View>
-					) : (
-						// Aquí va la lista y el resto del contenido
-						<View style={styles.colorContainer}>
-							<View style={styles.headerContainer}>
-								<ThemedText type="subtitle" style={styles.subtitle}>
-									Inventario de colores
-								</ThemedText>
-								<TouchableOpacity
-									style={styles.addButton}
-									onPress={() => setShowForm(!showForm)}
-								>
-									<ThemedText style={styles.addButtonText}>
-										{showForm ? "✕" : "+"}
-									</ThemedText>
-								</TouchableOpacity>
-							</View>
-
-							{showForm && (
-								<ThemedView style={styles.formContainer}>
-									<TextInput
-										style={styles.input}
-										placeholder="Nombre del color"
-										value={newColorName}
-										onChangeText={setNewColorName}
-										placeholderTextColor="#888"
-									/>
-									<TextInput
-										style={styles.input}
-										placeholder="Cantidad (opcional)"
-										value={newColorQuantity}
-										onChangeText={setNewColorQuantity}
-										keyboardType="numeric"
-										placeholderTextColor="#888"
-									/>
-									<TouchableOpacity
-										style={styles.submitButton}
-										onPress={handleAddColor}
-									>
-										<ThemedText style={styles.submitButtonText}>
-											Agregar Color
-										</ThemedText>
-									</TouchableOpacity>
-								</ThemedView>
-							)}
-
-							{inventory.length === 0 ? (
-								<ThemedView style={styles.emptyContainer}>
-									<ThemedText style={styles.emptyText}>
-										No hay colores en el inventario
-									</ThemedText>
-								</ThemedView>
-							) : (
-								<DraggableFlatList
-									data={inventory}
-									onDragEnd={handleDragEnd}
-									keyExtractor={(item) => item.id}
-									renderItem={renderItem}
-									contentContainerStyle={styles.flatListContent}
-									ListFooterComponent={<View style={styles.listFooter} />}
-									showsVerticalScrollIndicator={false}
+				) : (
+					<DraggableFlatList
+						data={inventory}
+						onDragEnd={handleDragEnd}
+						keyExtractor={(item) => item.id}
+						renderItem={renderItem}
+						ListHeaderComponent={
+							<Surface style={styles.headerCard} elevation={2}>
+								<Image
+									source={require("../../assets/images/palot.png")}
+									style={styles.headerImage}
+									resizeMode="contain"
 								/>
-							)}
-						</View>
-					)}
-				</View>
-			</View>
+								<View style={styles.headerTextContainer}>
+									<Text variant="headlineMedium" style={styles.headerTitle}>
+										Inventario de Colores
+									</Text>
+									<Text variant="bodyMedium" style={styles.headerSubtitle}>
+										{inventory.length} colores disponibles
+									</Text>
+								</View>
+							</Surface>
+						}
+						ListEmptyComponent={
+							<Card style={styles.emptyCard}>
+								<Card.Content style={styles.emptyContent}>
+									<Text variant="titleLarge" style={styles.emptyTitle}>
+										No hay colores en el inventario
+									</Text>
+									<Text variant="bodyMedium" style={styles.emptySubtitle}>
+										Presiona el botón + para agregar tu primer color
+									</Text>
+								</Card.Content>
+							</Card>
+						}
+						contentContainerStyle={styles.listContent}
+						ListFooterComponent={<View style={{ height: 100 }} />}
+						showsVerticalScrollIndicator={false}
+						refreshControl={
+							<RefreshControl
+								refreshing={refreshing}
+								onRefresh={reloadData}
+								colors={[theme.colors.primary]}
+							/>
+						}
+					/>
+				)}
+
+				{/* FAB para agregar nuevo color */}
+				<FAB
+					icon="plus"
+					style={styles.fab}
+					onPress={() => setDialogVisible(true)}
+				/>
+
+				{/* Dialog para agregar color */}
+				<Portal>
+					<Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
+						<Dialog.Title>Agregar Nuevo Color</Dialog.Title>
+						<Dialog.Content>
+							<TextInput
+								label="Nombre del color"
+								value={newColorName}
+								onChangeText={setNewColorName}
+								mode="outlined"
+								style={styles.dialogInput}
+							/>
+							<TextInput
+								label="Cantidad inicial"
+								value={newColorQuantity}
+								onChangeText={setNewColorQuantity}
+								keyboardType="numeric"
+								mode="outlined"
+								style={styles.dialogInput}
+							/>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={() => {
+								setDialogVisible(false);
+								setNewColorName("");
+								setNewColorQuantity("");
+							}}>
+								Cancelar
+							</Button>
+							<Button mode="contained" onPress={() => {
+								handleAddColor();
+								setDialogVisible(false);
+							}}>
+								Agregar
+							</Button>
+						</Dialog.Actions>
+					</Dialog>
+
+					{/* Dialog para confirmar eliminación */}
+					<Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
+						<Dialog.Title>Confirmar Eliminación</Dialog.Title>
+						<Dialog.Content>
+							<Text variant="bodyLarge">
+								¿Está seguro que desea eliminar {colorToDelete?.name}?
+							</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={() => setDeleteDialogVisible(false)}>
+								Cancelar
+							</Button>
+							<Button mode="contained" buttonColor={theme.colors.error} onPress={handleConfirmDelete}>
+								Eliminar
+							</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+			</Surface>
 		</GestureHandlerRootView>
 	);
 }
@@ -477,232 +503,114 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 	},
-	header: {
-		backgroundColor: "#A1CEDC",
-		height: 180,
-		justifyContent: "flex-end",
-		alignItems: "center",
-		borderBottomLeftRadius: 0,
-		borderBottomRightRadius: 0,
-		paddingBottom: 5,
+	appBar: {
+		elevation: 0,
+	},
+	appBarTitle: {
+		fontWeight: 'bold',
 	},
 	content: {
 		flex: 1,
-		paddingHorizontal: 16,
-		paddingTop: 16,
 	},
-	titleContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		width: "100%",
-		paddingHorizontal: 20,
+	headerCard: {
+		margin: 16,
+		padding: 16,
+		borderRadius: 16,
+		flexDirection: 'row',
+		alignItems: 'center',
 	},
-	titleText: {
-		fontSize: 28,
-		fontWeight: "bold",
-		color: "white",
-		textShadowColor: "rgba(0, 0, 0, 0.2)",
-		textShadowOffset: { width: 1, height: 1 },
-		textShadowRadius: 2,
-		marginRight: 15,
-		lineHeight: 35, // Aumenta la altura de la fuente
+	headerImage: {
+		width: 80,
+		height: 80,
+		marginRight: 16,
 	},
-	colorContainer: {
-		padding: 12,
-		backgroundColor: "rgba(161, 206, 220, 0.1)",
-		borderRadius: 12,
-		marginVertical: 0,
-		marginHorizontal: 6,
+	headerTextContainer: {
 		flex: 1,
 	},
-	subtitle: {
-		marginBottom: 16,
-		fontSize: 22,
+	headerTitle: {
+		fontWeight: 'bold',
+		marginBottom: 4,
 	},
-	colorRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		paddingVertical: 20,
-		paddingHorizontal: 16,
+	headerSubtitle: {
+		opacity: 0.7,
+	},
+	colorCard: {
+		marginHorizontal: 16,
+		marginVertical: 8,
 		borderRadius: 12,
-		marginVertical: 6,
-		borderWidth: 1,
-		borderColor: "rgba(161, 206, 220, 0.2)",
-		backgroundColor: "rgba(161, 206, 220, 0.05)",
 	},
-	colorNameContainer: {
+	activeCard: {
+		opacity: 0.9,
+	},
+	cardContent: {
+		paddingVertical: 8,
+	},
+	cardRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	dragIcon: {
+		marginLeft: -8,
+	},
+	colorInfo: {
 		flex: 1,
+		marginLeft: 8,
 	},
 	colorName: {
-		fontSize: 20,
-		fontWeight: "500",
+		fontWeight: '600',
+		marginBottom: 4,
 	},
-	quantityContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
+	quantityChip: {
+		marginTop: 4,
 	},
-	button: {
-		backgroundColor: "rgba(161, 206, 220, 0.2)",
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	buttonText: {
-		fontSize: 22,
-		fontWeight: "bold",
-	},
-	quantity: {
-		fontSize: 22,
-		fontWeight: "bold",
-		minWidth: 36,
-		textAlign: "center",
-	},
-	reactLogo: {
-		width: 120,
-		height: 120,
-		resizeMode: "contain",
-		marginBottom: -10,
+	actionButtons: {
+		flexDirection: 'row',
+		alignItems: 'center',
 	},
 	loadingContainer: {
 		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 32,
 	},
 	loadingText: {
-		marginTop: 12,
-		fontSize: 16,
+		marginTop: 16,
+		opacity: 0.7,
 	},
-	errorContainer: {
-		backgroundColor: "rgba(255, 0, 0, 0.1)",
-		padding: 12,
-		borderRadius: 8,
-		margin: 6,
-		alignItems: "center",
+	errorCard: {
+		margin: 16,
 	},
 	errorText: {
-		color: "red",
 		marginBottom: 8,
 	},
-	retryButton: {
-		backgroundColor: "rgba(161, 206, 220, 0.3)",
-		paddingVertical: 8,
-		paddingHorizontal: 16,
-		borderRadius: 8,
+	emptyCard: {
+		margin: 16,
+		minHeight: 200,
 	},
-	retryButtonText: {
-		fontWeight: "bold",
+	emptyContent: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		paddingVertical: 32,
 	},
-	reloadButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "rgba(255, 255, 255, 0.3)",
-		justifyContent: "center",
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: "rgba(255, 255, 255, 0.5)",
+	emptyTitle: {
+		textAlign: 'center',
+		marginBottom: 8,
+		opacity: 0.8,
 	},
-	reloadButtonText: {
-		fontSize: 22,
-		fontWeight: "bold",
-		color: "white",
-	},
-	headerContainer: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		marginBottom: 12,
-	},
-	addButton: {
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		backgroundColor: "rgba(161, 206, 220, 0.2)",
-		justifyContent: "center",
-		alignItems: "center",
-		alignSelf: "center",
-		marginTop: -10,
-	},
-	addButtonText: {
-		fontSize: 24,
-		fontWeight: "bold",
-	},
-	formContainer: {
-		backgroundColor: "rgba(161, 206, 220, 0.05)",
-		padding: 16,
-		borderRadius: 12,
-		marginBottom: 16,
-		borderWidth: 1,
-		borderColor: "rgba(161, 206, 220, 0.2)",
-	},
-	input: {
-		backgroundColor: "#fff",
-		padding: 12,
-		borderRadius: 6,
-		marginBottom: 12,
-		fontSize: 16,
-		borderWidth: 1,
-		borderColor: "rgba(161, 206, 220, 0.3)",
-		color: "#333",
-	},
-	submitButton: {
-		backgroundColor: "#A1CEDC",
-		padding: 12,
-		borderRadius: 6,
-		alignItems: "center",
-	},
-	submitButtonText: {
-		color: "#fff",
-		fontWeight: "bold",
-		fontSize: 16,
-	},
-	emptyContainer: {
-		padding: 24,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	emptyText: {
-		fontSize: 16,
-		textAlign: "center",
+	emptySubtitle: {
+		textAlign: 'center',
 		opacity: 0.6,
 	},
-
-	dragHandle: {
-		marginRight: 12,
-		padding: 5,
-	},
-	dragHandleText: {
-		fontSize: 24,
-		opacity: 0.5,
-	},
-	deleteAction: {
-		backgroundColor: "#FF6B6B",
-		justifyContent: "center",
-		alignItems: "center",
-		width: 100,
-		height: "100%",
-		borderTopRightRadius: 12,
-		borderBottomRightRadius: 12,
-	},
-	deleteActionContent: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	deleteActionText: {
-		color: "white",
-		fontWeight: "bold",
-		fontSize: 16,
-	},
-	flatListContent: {
+	listContent: {
 		paddingBottom: 16,
 	},
-	listFooter: {
-		height: 80,
+	fab: {
+		position: 'absolute',
+		margin: 16,
+		right: 0,
+		bottom: 0,
+	},
+	dialogInput: {
+		marginBottom: 16,
 	},
 });

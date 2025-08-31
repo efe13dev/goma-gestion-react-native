@@ -1,6 +1,8 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
+import { PaperProvider } from "react-native-paper";
+import { MD3LightThemeCustom, MD3DarkThemeCustom } from "@/theme/md3-theme";
 
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -10,9 +12,11 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function TabLayout() {
 	const colorScheme = useColorScheme();
+	const theme = colorScheme === "dark" ? MD3DarkThemeCustom : MD3LightThemeCustom;
 
 	return (
-		<Tabs
+		<PaperProvider theme={theme}>
+			<Tabs
 			screenOptions={{
 				tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
 				headerShown: false,
@@ -46,5 +50,6 @@ export default function TabLayout() {
 				}}
 			/>
 		</Tabs>
+		</PaperProvider>
 	);
 }
