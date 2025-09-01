@@ -2,18 +2,28 @@ import React, { useState, useEffect } from "react";
 import {
 	StyleSheet,
 	View,
-	TextInput,
-	TouchableOpacity,
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import {
+	Appbar,
+	Surface,
+	Card,
+	Text,
+	TextInput,
+	Button,
+	FAB,
+	List,
+	IconButton,
+	ActivityIndicator,
+	SegmentedButtons,
+	useTheme,
+	Chip,
+} from "react-native-paper";
 import { addFormula, getFormulas } from "@/api/formulasApi";
 import { showSuccess, showError } from "@/utils/toast";
-import { useColorScheme } from "react-native";
 import uuid from "react-native-uuid";
 import { useNavigation } from "@react-navigation/native";
 
@@ -35,19 +45,23 @@ export default function NuevaFormulaScreen() {
 		unidad: "gr",
 	});
 	const router = useRouter();
-	const colorScheme = useColorScheme();
-	const isDark = colorScheme === "dark";
+	const theme = useTheme();
 	const navigation = useNavigation();
-
-	// Define el color de placeholder apagado según el tema
-	const placeholderColor = isDark ? "#6C7A89" : "#B0B8C1";
 
 	// Opciones de unidad disponibles
 	const unidades = ["gr", "kg", "L"];
 
 	useEffect(() => {
-		navigation.setOptions({ headerBackTitle: "Volver" });
-	}, [navigation]);
+		navigation.setOptions({ 
+			headerBackTitle: "Volver",
+			header: () => (
+				<Appbar.Header elevated mode="center-aligned">
+					<Appbar.BackAction onPress={() => router.back()} />
+					<Appbar.Content title="Nueva Fórmula" />
+				</Appbar.Header>
+			)
+		});
+	}, [navigation, router]);
 
 	const handleAddIngredient = () => {
 		if (!nuevoIngrediente.nombre.trim() || !nuevoIngrediente.cantidad.trim()) {
@@ -114,12 +128,7 @@ export default function NuevaFormulaScreen() {
 	};
 
 	return (
-		<ThemedView
-			style={[
-				styles.container,
-				{ backgroundColor: isDark ? "#192734" : "#A1CEDC" },
-			]}
-		>
+		<Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
 			<KeyboardAvoidingView
 				behavior={Platform.OS === "ios" ? "padding" : undefined}
 				style={{ flex: 1 }}
@@ -127,339 +136,204 @@ export default function NuevaFormulaScreen() {
 				<ScrollView
 					contentContainerStyle={{ flexGrow: 1, paddingBottom: 48 }}
 					keyboardShouldPersistTaps="handled"
+					showsVerticalScrollIndicator={false}
 				>
-					<View
-						style={[
-							styles.formContainer,
-							{
-								backgroundColor: isDark ? "#22304A" : "white",
-								shadowColor: isDark ? "#000" : "#000",
-							},
-						]}
-					>
-						<ThemedText style={styles.label}>Nombre del color</ThemedText>
-						<TextInput
-							style={[
-								styles.input,
-								{
-									backgroundColor: isDark ? "#1C2536" : "#F4F9FB",
-									color: isDark ? "#F4F9FB" : "#2E7D9B",
-									borderColor: isDark ? "#2E7D9B" : "#A1CEDC",
-								},
-							]}
-							value={nombreColor}
-							onChangeText={setNombreColor}
-							placeholder="Ejemplo: Azul cielo"
-							placeholderTextColor={placeholderColor}
-						/>
-						<ThemedText
-							style={[styles.label, { color: isDark ? "#A1CEDC" : "#2E7D9B" }]}
-						>
-							Ingredientes
-						</ThemedText>
-						{ingredientes.length === 0 && (
-							<ThemedText style={{ color: "#888", marginBottom: 8 }}>
-								Agrega al menos un ingrediente
-							</ThemedText>
-						)}
-						{ingredientes.map((ing) => (
-							<View
-								key={ing.id}
-								style={[
-									styles.ingredientCard,
-									{ backgroundColor: isDark ? "#1C2536" : "#F4F9FB" },
-								]}
-							>
-								<ThemedText
-									style={[
-										styles.ingredientText,
-										{ color: isDark ? "#A1CEDC" : "#2E7D9B" },
-									]}
-								>
-									{ing.nombre} - {ing.cantidad} {ing.unidad}
-								</ThemedText>
-								<TouchableOpacity
-									onPress={() =>
-										handleRemoveIngredient(ingredientes.indexOf(ing))
-									}
-									style={styles.deleteButton}
-								>
-									<ThemedText style={styles.deleteButtonText}>
-										Eliminar
-									</ThemedText>
-								</TouchableOpacity>
-							</View>
-						))}
-						<View style={styles.addIngredientRow}>
-							<ThemedText
-								style={[
-									styles.ingredientInputLabel,
-									{ color: isDark ? "#A1CEDC" : "#2E7D9B" },
-								]}
-							>
-								Nuevo ingrediente:
-							</ThemedText>
-							<View style={styles.ingredientInputRow}>
+					<View style={styles.content}>
+						<Card style={styles.formCard}>
+							<Card.Content>
+								<Text variant="titleLarge" style={styles.sectionTitle}>
+									Información de la Fórmula
+								</Text>
+								
 								<TextInput
-									style={[
-										styles.ingredientNameInput,
-										{
-											backgroundColor: isDark ? "#1C2536" : "#F4F9FB",
-											color: isDark ? "#F4F9FB" : "#2E7D9B",
-											borderColor: isDark ? "#2E7D9B" : "#A1CEDC",
-										},
-									]}
-									value={nuevoIngrediente.nombre}
-									onChangeText={(text) => handleChangeNuevo("nombre", text)}
-									placeholder="Nombre del ingrediente"
-									placeholderTextColor={placeholderColor}
+									label="Nombre del color"
+									value={nombreColor}
+									onChangeText={setNombreColor}
+									mode="outlined"
+									placeholder="Ejemplo: Azul cielo"
+									style={styles.input}
 								/>
-							</View>
-							<View style={styles.ingredientQuantityRow}>
-								<View style={{ flex: 1 }}>
+
+								<Text variant="titleMedium" style={[styles.sectionTitle, { marginTop: 24 }]}>
+									Ingredientes
+								</Text>
+								
+								{ingredientes.length === 0 ? (
+									<Text variant="bodyMedium" style={styles.emptyText}>
+										Agrega al menos un ingrediente
+									</Text>
+								) : (
+									<View style={styles.ingredientsList}>
+										{ingredientes.map((ing, index) => (
+											<Card key={ing.id} style={styles.ingredientCard} mode="outlined">
+												<Card.Content style={styles.ingredientContent}>
+													<View style={styles.ingredientInfo}>
+														<Text variant="bodyLarge" style={styles.ingredientName}>
+															{ing.nombre}
+														</Text>
+														<Text variant="bodyMedium" style={styles.ingredientQuantity}>
+															{ing.cantidad} {ing.unidad}
+														</Text>
+													</View>
+													<IconButton
+														icon="delete"
+														size={20}
+														iconColor={theme.colors.error}
+														onPress={() => handleRemoveIngredient(index)}
+													/>
+												</Card.Content>
+											</Card>
+										))}
+									</View>
+								)}
+
+								<View style={styles.addIngredientSection}>
+									<Text variant="titleSmall" style={styles.addIngredientTitle}>
+										Nuevo ingrediente:
+									</Text>
+									
 									<TextInput
-										style={[
-											styles.ingredientQuantityInput,
-											{
-												backgroundColor: isDark ? "#1C2536" : "#F4F9FB",
-												color: isDark ? "#F4F9FB" : "#2E7D9B",
-												borderColor: isDark ? "#2E7D9B" : "#A1CEDC",
-											},
-										]}
-										value={nuevoIngrediente.cantidad}
-										onChangeText={(text) => {
-											const filtered = text.replace(/[^0-9.]/g, "");
-											handleChangeNuevo("cantidad", filtered);
-										}}
-										placeholder="Cantidad"
-										keyboardType="numeric"
-										placeholderTextColor={placeholderColor}
+										label="Nombre del ingrediente"
+										value={nuevoIngrediente.nombre}
+										onChangeText={(text) => handleChangeNuevo("nombre", text)}
+										mode="outlined"
+										style={styles.input}
 									/>
+									
+									<View style={styles.quantityRow}>
+										<TextInput
+											label="Cantidad"
+											value={nuevoIngrediente.cantidad}
+											onChangeText={(text) => {
+												const filtered = text.replace(/[^0-9.]/g, "");
+												handleChangeNuevo("cantidad", filtered);
+											}}
+											mode="outlined"
+											keyboardType="numeric"
+											style={[styles.input, { flex: 1, marginRight: 12 }]}
+										/>
+									</View>
+									
+									<View style={styles.unitsSection}>
+										<Text variant="bodyMedium" style={styles.unitsLabel}>
+											Unidad:
+										</Text>
+										<SegmentedButtons
+											value={nuevoIngrediente.unidad}
+											onValueChange={(value) => handleChangeNuevo("unidad", value)}
+											buttons={unidades.map(unidad => ({
+												value: unidad,
+												label: unidad,
+											}))}
+											style={styles.segmentedButtons}
+										/>
+									</View>
+									
+									<Button
+										mode="contained-tonal"
+										onPress={handleAddIngredient}
+										icon="plus"
+										style={styles.addIngredientButton}
+									>
+										Agregar Ingrediente
+									</Button>
 								</View>
-							</View>
-							<View
-								style={[
-									styles.unitOptionsRow,
-									{ marginTop: 2, marginBottom: 8 },
-								]}
-							>
-								<View style={{ flexDirection: "row", flex: 1 }}>
-									{unidades.map((unidad) => (
-										<TouchableOpacity
-											key={unidad}
-											style={[
-												styles.unitChip,
-												{
-													backgroundColor:
-														nuevoIngrediente.unidad === unidad
-															? isDark
-																? "#2E7D9B"
-																: "#A1CEDC"
-															: isDark
-																? "#1C2536"
-																: "#F4F9FB",
-													borderColor:
-														nuevoIngrediente.unidad === unidad
-															? isDark
-																? "#A1CEDC"
-																: "#2E7D9B"
-															: isDark
-																? "#2E7D9B"
-																: "#A1CEDC",
-												},
-											]}
-											onPress={() => handleChangeNuevo("unidad", unidad)}
-										>
-											<ThemedText
-												style={{
-													color:
-														nuevoIngrediente.unidad === unidad
-															? isDark
-																? "#192734"
-																: "#2E7D9B"
-															: isDark
-																? "#A1CEDC"
-																: "#2E7D9B",
-													fontWeight: "bold",
-												}}
-											>
-												{unidad}
-											</ThemedText>
-										</TouchableOpacity>
-									))}
-								</View>
-								<TouchableOpacity
-									onPress={handleAddIngredient}
-									style={[styles.addCircle, { marginLeft: 24 }]}
-								>
-									<ThemedText style={styles.addCircleText}>+</ThemedText>
-								</TouchableOpacity>
-							</View>
-						</View>
-						<TouchableOpacity
-							style={styles.button}
+							</Card.Content>
+						</Card>
+
+						<Button
+							mode="contained"
 							onPress={handleAddFormula}
-							disabled={isLoading}
+							loading={isLoading}
+							disabled={isLoading || !nombreColor.trim() || ingredientes.length === 0}
+							style={styles.submitButton}
+							contentStyle={styles.submitButtonContent}
 						>
-							<ThemedText style={styles.buttonText}>
-								{isLoading ? "Añadiendo..." : "Añadir fórmula"}
-							</ThemedText>
-						</TouchableOpacity>
+							{isLoading ? "Añadiendo..." : "Añadir Fórmula"}
+						</Button>
 					</View>
 				</ScrollView>
 			</KeyboardAvoidingView>
-		</ThemedView>
+		</Surface>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
 	},
-	formContainer: {
-		backgroundColor: "white",
-		borderRadius: 20,
-		padding: 28,
-		width: 350,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.13,
-		shadowRadius: 12,
-		elevation: 7,
-		marginVertical: 30,
+	content: {
+		padding: 16,
 	},
-	label: {
-		fontSize: 20,
-		marginBottom: 10,
-		color: "#2E7D9B",
+	formCard: {
+		marginBottom: 16,
+	},
+	sectionTitle: {
 		fontWeight: "bold",
+		marginBottom: 12,
 	},
 	input: {
-		borderWidth: 1,
-		borderColor: "#A1CEDC",
-		borderRadius: 10,
-		padding: 14,
-		fontSize: 17,
-		marginBottom: 12,
-		backgroundColor: "#F4F9FB",
+		marginBottom: 8,
+	},
+	emptyText: {
+		color: "#666",
+		fontStyle: "italic",
+		marginBottom: 16,
+	},
+	ingredientsList: {
+		marginBottom: 16,
 	},
 	ingredientCard: {
+		marginBottom: 8,
+	},
+	ingredientContent: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#F4F9FB",
-		borderRadius: 10,
-		padding: 10,
-		marginBottom: 8,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.06,
-		shadowRadius: 4,
-		elevation: 2,
-	},
-	ingredientText: {
-		flex: 1,
-		color: "#2E7D9B",
-		fontSize: 16,
-		fontWeight: "500",
-	},
-	deleteButton: {
-		backgroundColor: "#FF6B6B",
 		paddingVertical: 4,
-		paddingHorizontal: 10,
-		borderRadius: 16,
-		marginLeft: 8,
 	},
-	deleteButtonText: {
-		color: "white",
-		fontWeight: "bold",
-		fontSize: 14,
-	},
-	addIngredientRow: {
-		flexDirection: "column",
-		marginBottom: 18,
-	},
-	ingredientInputRow: {
-		flexDirection: "row",
-		marginBottom: 10,
-	},
-	ingredientNameInput: {
+	ingredientInfo: {
 		flex: 1,
-		borderWidth: 1,
-		borderColor: "#A1CEDC",
-		borderRadius: 10,
-		padding: 14,
-		fontSize: 17,
-		backgroundColor: "#F4F9FB",
-		marginRight: 8,
 	},
-	ingredientQuantityRow: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	ingredientQuantityInput: {
-		borderWidth: 1,
-		borderColor: "#A1CEDC",
-		borderRadius: 10,
-		padding: 14,
-		fontSize: 17,
-		marginBottom: 8,
-		marginRight: 8,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.07,
-		shadowRadius: 3.84,
-		elevation: 2,
-	},
-	addCircle: {
-		backgroundColor: "#2E7D9B",
-		width: 45,
-		height: 45,
-		borderRadius: 22.5,
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-		alignSelf: "flex-end",
-	},
-	addCircleText: {
-		color: "white",
-		fontWeight: "bold",
-		fontSize: 24,
-	},
-	button: {
-		backgroundColor: "#2E7D9B",
-		paddingVertical: 15,
-		borderRadius: 10,
-		alignItems: "center",
-		marginTop: 10,
-	},
-	buttonText: {
-		color: "white",
-		fontSize: 19,
-		fontWeight: "bold",
-	},
-	ingredientInputLabel: {
-		fontSize: 16,
-		color: "#2E7D9B",
+	ingredientName: {
 		fontWeight: "500",
-		marginBottom: 6,
 	},
-	unitOptionsRow: {
+	ingredientQuantity: {
+		color: "#666",
+		marginTop: 2,
+	},
+	addIngredientSection: {
+		backgroundColor: "#f5f5f5",
+		borderRadius: 8,
+		padding: 16,
+		marginTop: 8,
+	},
+	addIngredientTitle: {
+		fontWeight: "600",
+		marginBottom: 12,
+	},
+	quantityRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginRight: 8,
+		marginBottom: 12,
 	},
-	unitChip: {
+	unitsSection: {
+		marginBottom: 16,
+	},
+	unitsLabel: {
+		marginBottom: 8,
+		fontWeight: "500",
+	},
+	segmentedButtons: {
+		marginBottom: 8,
+	},
+	addIngredientButton: {
+		marginTop: 8,
+	},
+	submitButton: {
+		marginTop: 16,
+		marginBottom: 32,
+	},
+	submitButtonContent: {
 		paddingVertical: 8,
-		paddingHorizontal: 16,
-		borderRadius: 16,
-		borderWidth: 2,
-		marginHorizontal: 2,
-		marginVertical: 2,
 	},
 });

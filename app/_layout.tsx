@@ -12,6 +12,8 @@ import "react-native-reanimated";
 import { StyleSheet } from "react-native";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import Toast from 'react-native-toast-message';
+import { PaperProvider } from "react-native-paper";
+import { MD3LightThemeCustom, MD3DarkThemeCustom } from "@/theme/md3-theme";
 // import { cargarFormulas } from "@/data/formulas";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -22,6 +24,8 @@ export default function RootLayout() {
 	const [loaded] = useFonts({
 		SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
 	});
+
+	const theme = colorScheme === "dark" ? MD3DarkThemeCustom : MD3LightThemeCustom;
 
 	useEffect(() => {
 		// Cargar las fórmulas desde el archivo al iniciar la aplicación
@@ -49,33 +53,36 @@ export default function RootLayout() {
 	}
 
 	return (
-		<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-			<Stack
-				screenOptions={{
-					headerBackTitle: "Volver",
-				}}
-			>
-				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-				<Stack.Screen name="+not-found" />
-				<Stack.Screen
-					name="formulas/[id]"
-					options={{
-						title: "Volver",
+		<PaperProvider theme={theme}>
+			<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+				<Stack
+					screenOptions={{
 						headerBackTitle: "Volver",
-						headerBackVisible: true,
 					}}
-				/>
-				<Stack.Screen
-					name="formulas/nueva-formula"
-					options={{
-						title: "Volver",
-						headerBackTitle: "Volver",
-						headerBackVisible: true,
-					}}
-				/>
-			</Stack>
-			<Toast />
-			<StatusBar style="auto" />
-		</ThemeProvider>
+				>
+					<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+					<Stack.Screen name="+not-found" />
+					<Stack.Screen
+						name="formulas/[id]"
+						options={{
+							headerShown: false,
+							title: "Volver",
+							headerBackTitle: "Volver",
+							headerBackVisible: true,
+						}}
+					/>
+					<Stack.Screen
+						name="formulas/nueva-formula"
+						options={{
+							title: "Volver",
+							headerBackTitle: "Volver",
+							headerBackVisible: true,
+						}}
+					/>
+				</Stack>
+				<Toast />
+				<StatusBar style="auto" />
+			</ThemeProvider>
+		</PaperProvider>
 	);
 }

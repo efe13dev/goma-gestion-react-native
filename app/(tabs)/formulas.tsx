@@ -1,35 +1,47 @@
-// @ts-nocheck
 import React, { useState, useCallback } from "react";
 import {
-	StyleSheet,
-	Image,
-	TouchableOpacity,
-	Alert,
-	ActivityIndicator,
 	View,
+	StyleSheet,
+	ScrollView,
+	RefreshControl,
+	Image,
 	FlatList,
 } from "react-native";
-import { Link } from "expo-router";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import {
+	Appbar,
+	Card,
+	IconButton,
+	Button,
+	Text,
+	Dialog,
+	Portal,
+	useTheme,
+	FAB,
+	Surface,
+	ActivityIndicator as PaperActivityIndicator,
+} from "react-native-paper";
 import { getFormulas, deleteFormula } from "@/api/formulasApi";
 import type { Formula } from "@/types/formulas";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { showSuccess, showError } from "@/utils/toast";
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "react-native";
 
 export default function FormulasScreen() {
+	const theme = useTheme();
+	const router = useRouter();
 	const [formulas, setFormulas] = useState<Formula[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
+	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+	const [formulaToDelete, setFormulaToDelete] = useState<Formula | null>(null);
 
-	const colorScheme = useColorScheme();
-	const isDark = colorScheme === "dark";
-
-	const loadFormulas = useCallback(async () => {
-		setIsLoading(true);
+	const loadFormulas = useCallback(async (showRefresh = false) => {
+		if (showRefresh) {
+			setRefreshing(true);
+		} else {
+			setIsLoading(true);
+		}
 		setError(null);
 		try {
 			const fetchedFormulas = await getFormulas();
@@ -37,10 +49,10 @@ export default function FormulasScreen() {
 		} catch (err) {
 			const errorMessage = "Error al cargar las fórmulas. Inténtalo de nuevo.";
 			setError(errorMessage);
-			showError("Error", errorMessage);
 			console.error(err);
 		} finally {
 			setIsLoading(false);
+			setRefreshing(false);
 		}
 	}, []);
 
@@ -62,19 +74,21 @@ export default function FormulasScreen() {
 		}
 	};
 
-	const confirmDeleteFormula = (formula: Formula) => {
-		Alert.alert(
-			"Eliminar Fórmula",
-			`¿Está seguro que desea eliminar la fórmula "${formula.nombreColor}"?`,
-			[
-				{ text: "Cancelar", style: "cancel" },
-				{
-					text: "Eliminar",
-					style: "destructive",
-					onPress: () => handleDeleteFormula(formula.id, formula.nombreColor),
-				},
-			],
-		);
+	const confirmDeleteFormula = useCallback((formula: Formula) => {
+		setFormulaToDelete(formula);
+		setDeleteDialogVisible(true);
+	}, []);
+
+	const handleConfirmDelete = async () => {
+		if (formulaToDelete) {
+			setDeleteDialogVisible(false);
+			await handleDeleteFormula(formulaToDelete.id, formulaToDelete.nombreColor);
+			setFormulaToDelete(null);
+		}
+	};
+
+	const reloadData = () => {
+		loadFormulas(true);
 	};
 
 	useFocusEffect(
@@ -83,217 +97,248 @@ export default function FormulasScreen() {
 		}, [loadFormulas]),
 	);
 
-	const styles = StyleSheet.create({
-		container: {
-			flex: 1,
-			backgroundColor: isDark ? "#191919" : "#F4F9FB", // Igual que en stocks
-		},
-		header: {
-			backgroundColor: "#A1CEDC",
-			height: 180,
-			justifyContent: "flex-end",
-			alignItems: "center",
-			borderBottomLeftRadius: 0,
-			borderBottomRightRadius: 0,
-			paddingBottom: 5,
-			paddingTop: 10,
-		},
-		reactLogo: {
-			width: 120,
-			height: 120,
-			resizeMode: "contain",
-		},
-		titleContainer: {
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "center",
-			width: "100%",
-			paddingHorizontal: 20,
-		},
-		titleText: {
-			fontSize: 28,
-			fontWeight: "bold",
-			color: "white",
-			textShadowColor: "rgba(0, 0, 0, 0.2)",
-			textShadowOffset: { width: 1, height: 1 },
-			textShadowRadius: 2,
-			marginRight: 15,
-		},
-		reloadButton: {
-			width: 40,
-			height: 40,
-			borderRadius: 20,
-			backgroundColor: "rgba(255, 255, 255, 0.3)",
-			justifyContent: "center",
-			alignItems: "center",
-			borderWidth: 1,
-			borderColor: "rgba(255, 255, 255, 0.5)",
-		},
-		reloadButtonText: {
-			fontSize: 22,
-			fontWeight: "bold",
-			color: "white",
-		},
-		listContentContainer: {
-			paddingHorizontal: 10,
-			paddingTop: 12,
-			paddingBottom: 24,
-		},
-		formulaContainer: {
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "flex-start",
-			backgroundColor: isDark ? "#222E39" : "#F4F9FB", // Igual que en detalle
-			borderColor: isDark ? "#444A" : "#C2C7CC", // Igual que en detalle
-			borderWidth: 1,
-			borderRadius: 12,
-			marginVertical: 8,
-			marginHorizontal: 4,
-			paddingVertical: 14,
-			paddingHorizontal: 18,
-			minHeight: 60,
-			shadowColor: isDark ? "#000" : "#A1CEDC",
-			shadowOpacity: 0.1,
-			shadowOffset: { width: 0, height: 2 },
-			shadowRadius: 4,
-			elevation: 2,
-		},
-		formulaColor: {
-			fontSize: 20,
-			fontWeight: "500",
-			color: isDark ? "#fff" : "#222",
-			opacity: 0.95,
-		},
-		emptyContainer: {
-			padding: 32,
-			alignItems: "center",
-			justifyContent: "center",
-			marginTop: 32,
-		},
-		emptyText: {
-			textAlign: "center",
-			opacity: 0.7,
-			fontSize: 16,
-			color: isDark ? "#A1CEDC" : "#2E7D9B",
-		},
-		addButton: {
-			backgroundColor: "#2E7D9B",
-			paddingVertical: 10,
-			paddingHorizontal: 24,
-			borderRadius: 8,
-			alignSelf: "center",
-			shadowColor: "#000",
-			shadowOffset: { width: 0, height: 2 },
-			shadowOpacity: 0.1,
-			shadowRadius: 4,
-			elevation: 2,
-		},
-		addButtonText: {
-			color: "white",
-			fontSize: 16,
-			fontWeight: "bold",
-		},
-	});
+	const renderFormulaItem = ({ item }: { item: Formula }) => (
+		<Card
+			style={styles.formulaCard}
+			mode="elevated"
+			elevation={1}
+			onPress={() => router.push(`/formulas/${item.id}`)}
+			onLongPress={() => confirmDeleteFormula(item)}
+		>
+			<Card.Content>
+				<View style={styles.cardContent}>
+					<View style={styles.formulaInfo}>
+						<Text variant="titleMedium" style={styles.formulaName}>
+							{item.nombreColor.charAt(0).toUpperCase() + item.nombreColor.slice(1)}
+						</Text>
+					</View>
+					<IconButton
+						icon="chevron-right"
+						size={24}
+						onPress={() => router.push(`/formulas/${item.id}`)}
+					/>
+				</View>
+			</Card.Content>
+		</Card>
+	);
 
 	return (
-		<ThemedView style={styles.container}>
-			<View style={styles.header}>
-				<Image
-					source={require("@/assets/images/chemical.png")}
-					style={styles.reactLogo}
+		<Surface style={styles.container}>
+			{/* Appbar con Material Design 3 */}
+			<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+				<Appbar.Content title="Fórmulas" titleStyle={styles.appBarTitle} />
+				<Appbar.Action 
+					icon={refreshing ? "loading" : "refresh"} 
+					onPress={reloadData}
+					disabled={refreshing}
 				/>
-				<View style={styles.titleContainer}>
-					<ThemedText type="title" style={styles.titleText}>
-						Fórmulas
-					</ThemedText>
-					<TouchableOpacity onPress={loadFormulas} style={styles.reloadButton}>
-						{isLoading ? (
-							<ActivityIndicator size="small" color="white" />
-						) : (
-							<ThemedText style={styles.reloadButtonText}>↻</ThemedText>
-						)}
-					</TouchableOpacity>
-				</View>
-			</View>
+			</Appbar.Header>
 
+			{/* Contenido principal */}
 			{error ? (
-				<View style={styles.emptyContainer}>
-					<ThemedText style={styles.emptyText}>{error}</ThemedText>
-					<TouchableOpacity
-						onPress={loadFormulas}
-						style={[styles.addButton, { backgroundColor: "#2E7D9B" }]}
-					>
-						<ThemedText style={styles.addButtonText}>Reintentar</ThemedText>
-					</TouchableOpacity>
-				</View>
+				<ScrollView 
+					style={styles.content}
+					contentContainerStyle={{ paddingBottom: 16 }}
+					refreshControl={
+						<RefreshControl
+							refreshing={refreshing}
+							onRefresh={reloadData}
+							colors={[theme.colors.primary]}
+						/>
+					}
+				>
+					<Card style={styles.errorCard} mode="outlined">
+						<Card.Content>
+							<Text variant="bodyLarge" style={styles.errorText}>
+								{error}
+							</Text>
+						</Card.Content>
+						<Card.Actions>
+							<Button mode="contained" onPress={reloadData}>
+								Reintentar
+							</Button>
+						</Card.Actions>
+					</Card>
+				</ScrollView>
 			) : isLoading ? (
-				<View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-					<ActivityIndicator size="large" color="#2E7D9B" />
-					<ThemedText style={{ marginTop: 14, color: "#2E7D9B", fontWeight: "bold", fontSize: 18 }}>
+				<View style={styles.loadingContainer}>
+					<PaperActivityIndicator 
+						size="large" 
+						color={theme.colors.primary} 
+					/>
+					<Text variant="bodyLarge" style={styles.loadingText}>
 						Cargando fórmulas...
-					</ThemedText>
+					</Text>
 				</View>
 			) : (
 				<FlatList
 					data={formulas}
 					keyExtractor={(item) => item.id.toString()}
-					onRefresh={loadFormulas}
-					refreshing={isLoading}
-					renderItem={({ item }) => (
-						<Link
-							href={{ pathname: "/formulas/[id]", params: { id: item.id } }}
-							asChild
-						>
-							<TouchableOpacity
-								style={styles.formulaContainer}
-								onLongPress={() => confirmDeleteFormula(item)}
-							>
-								<View style={{ flex: 1 }}>
-									<ThemedText
-										style={[
-											styles.formulaColor,
-											{
-												color: isDark ? "#fff" : "#222",
-												fontWeight: "500",
-												fontSize: 20,
-											},
-										]}
-									>
-										{item.nombreColor.charAt(0).toUpperCase() +
-											item.nombreColor.slice(1)}
-									</ThemedText>
-								</View>
-								<Ionicons
-									name="chevron-forward-outline"
-									size={26}
-									color={isDark ? "#fff" : "#222"}
-									style={{ marginLeft: 8, opacity: 0.7 }}
-								/>
-							</TouchableOpacity>
-						</Link>
-					)}
-					ListEmptyComponent={
-						!isLoading ? (
-							<View style={styles.emptyContainer}>
-								<ThemedText style={styles.emptyText}>
-									No hay fórmulas disponibles.
-								</ThemedText>
+					renderItem={renderFormulaItem}
+					ListHeaderComponent={
+						<Surface style={styles.headerCard} elevation={2}>
+							<Image
+								source={require("@/assets/images/chemical.png")}
+								style={styles.headerImage}
+								resizeMode="contain"
+							/>
+							<View style={styles.headerTextContainer}>
+								<Text variant="headlineMedium" style={styles.headerTitle}>
+									Gestión de Fórmulas
+								</Text>
+								<Text variant="bodyMedium" style={styles.headerSubtitle}>
+									{formulas.length} fórmulas disponibles
+								</Text>
 							</View>
-						) : null
+						</Surface>
 					}
-					contentContainerStyle={styles.listContentContainer}
+					ListEmptyComponent={
+						<Card style={styles.emptyCard}>
+							<Card.Content style={styles.emptyContent}>
+								<Text variant="titleLarge" style={styles.emptyTitle}>
+									No hay fórmulas disponibles
+								</Text>
+								<Text variant="bodyMedium" style={styles.emptySubtitle}>
+									Presiona el botón + para agregar tu primera fórmula
+								</Text>
+							</Card.Content>
+						</Card>
+					}
+					contentContainerStyle={styles.listContent}
+					ListFooterComponent={<View style={{ height: 100 }} />}
+					showsVerticalScrollIndicator={false}
+					refreshControl={
+						<RefreshControl
+							refreshing={refreshing}
+							onRefresh={reloadData}
+							colors={[theme.colors.primary]}
+						/>
+					}
 				/>
 			)}
-			{/* Botón para añadir nueva fórmula */}
-			<View style={{ alignItems: "flex-end", margin: 16 }}>
-				<Link href="/formulas/nueva-formula" asChild>
-					<TouchableOpacity style={styles.addButton}>
-						<ThemedText style={styles.addButtonText}>
-							+ Añadir fórmula
-						</ThemedText>
-					</TouchableOpacity>
-				</Link>
-			</View>
-		</ThemedView>
+
+			{/* FAB para agregar nueva fórmula */}
+			<FAB
+				icon="plus"
+				style={styles.fab}
+				onPress={() => router.push("/formulas/nueva-formula")}
+			/>
+
+			{/* Dialog para confirmar eliminación */}
+			<Portal>
+				<Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
+					<Dialog.Title>Confirmar Eliminación</Dialog.Title>
+					<Dialog.Content>
+						<Text variant="bodyLarge">
+							¿Está seguro que desea eliminar la fórmula {formulaToDelete?.nombreColor}?
+						</Text>
+					</Dialog.Content>
+					<Dialog.Actions>
+						<Button onPress={() => setDeleteDialogVisible(false)}>
+							Cancelar
+						</Button>
+						<Button mode="contained" buttonColor={theme.colors.error} onPress={handleConfirmDelete}>
+							Eliminar
+						</Button>
+					</Dialog.Actions>
+				</Dialog>
+			</Portal>
+		</Surface>
 	);
 }
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+	},
+	appBar: {
+		elevation: 0,
+	},
+	appBarTitle: {
+		fontWeight: 'bold',
+	},
+	content: {
+		flex: 1,
+	},
+	headerCard: {
+		margin: 16,
+		padding: 16,
+		borderRadius: 16,
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	headerImage: {
+		width: 80,
+		height: 80,
+		marginRight: 16,
+	},
+	headerTextContainer: {
+		flex: 1,
+	},
+	headerTitle: {
+		fontWeight: 'bold',
+		marginBottom: 4,
+	},
+	headerSubtitle: {
+		opacity: 0.7,
+	},
+	formulaCard: {
+		marginHorizontal: 16,
+		marginVertical: 8,
+		borderRadius: 12,
+	},
+	cardContent: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	formulaInfo: {
+		flex: 1,
+	},
+	formulaName: {
+		fontWeight: '600',
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 32,
+	},
+	loadingText: {
+		marginTop: 16,
+		opacity: 0.7,
+	},
+	errorCard: {
+		margin: 16,
+	},
+	errorText: {
+		marginBottom: 8,
+	},
+	emptyCard: {
+		margin: 16,
+		minHeight: 200,
+	},
+	emptyContent: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		paddingVertical: 32,
+	},
+	emptyTitle: {
+		textAlign: 'center',
+		marginBottom: 8,
+		opacity: 0.8,
+	},
+	emptySubtitle: {
+		textAlign: 'center',
+		opacity: 0.6,
+	},
+	listContent: {
+		paddingBottom: 16,
+	},
+	fab: {
+		position: 'absolute',
+		margin: 16,
+		right: 0,
+		bottom: 0,
+	},
+});
