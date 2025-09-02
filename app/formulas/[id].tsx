@@ -13,7 +13,6 @@ import {
 	Button,
 	Dialog,
 	Portal,
-	List,
 	IconButton,
 	ActivityIndicator,
 	Surface,
@@ -21,14 +20,16 @@ import {
 	SegmentedButtons,
 	useTheme,
 } from "react-native-paper";
-import {
-	getFormulaById,
-	updateIngredient,
-	deleteIngredient,
-	addIngredient,
-} from "@/api/formulasApi";
-import type { Formula, Ingrediente } from "@/types/formulas";
+import { getFormulaById, updateFormula, addIngredient } from "@/api/formulasApi";
+import type { Formula } from "@/types/formulas";
+import { Spacing } from "@/constants/Spacing";
 import { showSuccess, showError } from "@/utils/toast";
+
+type Ingrediente = {
+	nombre: string;
+	cantidad: number;
+	unidad: string;
+};
 
 // Función para capitalizar la primera letra de un string
 function capitalizeFirstLetter(text: string) {
@@ -43,10 +44,7 @@ export default function FormulaDetailScreen() {
 	const [formula, setFormula] = useState<Formula | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [selectedIngredient, setSelectedIngredient] = useState<{
-		ingrediente: Ingrediente;
-		index: number;
-	} | null>(null);
+	const [selectedIngredientIndex, setSelectedIngredientIndex] = useState<number | null>(null);
 	const [editDialogVisible, setEditDialogVisible] = useState(false);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [editedIngredient, setEditedIngredient] = useState<Ingrediente>({
@@ -89,31 +87,24 @@ export default function FormulaDetailScreen() {
 	};
 
 	const handleIngredientPress = (ingrediente: Ingrediente, index: number) => {
-		setSelectedIngredient({ ingrediente, index });
+		setSelectedIngredientIndex(index);
 		setEditedIngredient({ ...ingrediente });
 		setEditDialogVisible(true);
 	};
 
 	const handleUpdateIngredient = async () => {
-		if (!selectedIngredient || !formula || !id) return;
+		if (selectedIngredientIndex === null || !formula) return;
 
-		setIsLoading(true);
+		const updatedIngredients = [...(formula.ingredientes || [])];
+		updatedIngredients[selectedIngredientIndex] = editedIngredient as any;
+
 		try {
-			const success = await updateIngredient(
-				id as string,
-				selectedIngredient.index,
-				editedIngredient,
+			await updateFormula(id as string, { ...formula, ingredientes: updatedIngredients } as Formula);
+			showSuccess(
+				"Ingrediente actualizado",
+				"El ingrediente se actualizó correctamente",
 			);
-
-			if (success) {
-				showSuccess(
-					"Ingrediente actualizado",
-					"El ingrediente se actualizó correctamente",
-				);
-				fetchFormula();
-			} else {
-				showError("Error", "No se pudo actualizar el ingrediente");
-			}
+			fetchFormula();
 		} catch (error) {
 			console.error("Error al actualizar ingrediente:", error);
 			showError("Error", "Ocurrió un error al actualizar el ingrediente");
@@ -129,24 +120,20 @@ export default function FormulaDetailScreen() {
 	};
 
 	const handleDeleteIngredient = async () => {
-		if (!selectedIngredient || !formula || !id) return;
+		if (selectedIngredientIndex === null || !formula || !id) return;
 
 		setIsLoading(true);
 		try {
-			const success = await deleteIngredient(
-				id as string,
-				selectedIngredient.index,
+			const updatedIngredients = formula.ingredientes.filter(
+				(_, index) => index !== selectedIngredientIndex
 			);
+			await updateFormula(id as string, { ...formula, ingredientes: updatedIngredients } as Formula);
 
-			if (success) {
-				showSuccess(
-					"Ingrediente eliminado",
-					"El ingrediente se eliminó correctamente",
-				);
-				fetchFormula();
-			} else {
-				showError("Error", "No se pudo eliminar el ingrediente");
-			}
+			showSuccess(
+				"Ingrediente eliminado",
+				"El ingrediente se eliminó correctamente",
+			);
+			fetchFormula();
 		} catch (error) {
 			console.error("Error al eliminar ingrediente:", error);
 			showError("Error", "Ocurrió un error al eliminar el ingrediente");
@@ -242,9 +229,9 @@ export default function FormulaDetailScreen() {
 			</Appbar.Header>
 
 			<ScrollView style={styles.content}>
-				<Card style={styles.headerCard}>
+				<Card style={styles.formulaCard}>
 					<Card.Content>
-						<Text variant="headlineSmall" style={styles.headerTitle}>
+						<Text variant="headlineSmall" style={styles.sectionTitle}>
 							Ingredientes
 						</Text>
 						<Text variant="bodyMedium" style={styles.headerSubtitle}>
@@ -267,7 +254,7 @@ export default function FormulaDetailScreen() {
 								style={styles.ingredientCard}
 								onPress={() => handleIngredientPress(ingrediente, index)}
 							>
-								<Card.Content style={styles.cardContent}>
+								<Card.Content style={styles.ingredientContent}>
 									<View style={styles.ingredientInfo}>
 										<Text variant="titleMedium" style={styles.ingredientName}>
 											{capitalizeFirstLetter(name)}
@@ -304,7 +291,7 @@ export default function FormulaDetailScreen() {
 
 			{/* Dialog para editar ingrediente */}
 			<Portal>
-				<Dialog visible={editDialogVisible} onDismiss={() => setEditDialogVisible(false)}>
+				<Dialog visible={editDialogVisible} onDismiss={() => setEditDialogVisible(false)} style={styles.dialogContent}>
 					<Dialog.Title>Editar Ingrediente</Dialog.Title>
 					<Dialog.Content>
 						<TextInput
@@ -342,7 +329,7 @@ export default function FormulaDetailScreen() {
 							style={styles.segmentedButtons}
 						/>
 					</Dialog.Content>
-					<Dialog.Actions>
+					<Dialog.Actions style={styles.dialogActions}>
 						<Button onPress={() => setEditDialogVisible(false)}>
 							Cancelar
 						</Button>
@@ -356,14 +343,14 @@ export default function FormulaDetailScreen() {
 				</Dialog>
 
 				{/* Dialog para confirmar eliminación */}
-				<Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
+				<Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)} style={styles.dialogContent}>
 					<Dialog.Title>Confirmar Eliminación</Dialog.Title>
 					<Dialog.Content>
 						<Text variant="bodyLarge">
-							¿Estás seguro de que deseas eliminar el ingrediente "{selectedIngredient?.ingrediente.nombre}"?
+							¿Estás seguro de que deseas eliminar el ingrediente "{editedIngredient.nombre}"?
 						</Text>
 					</Dialog.Content>
-					<Dialog.Actions>
+					<Dialog.Actions style={styles.dialogActions}>
 						<Button onPress={() => setDeleteDialogVisible(false)}>
 							Cancelar
 						</Button>
@@ -374,7 +361,7 @@ export default function FormulaDetailScreen() {
 				</Dialog>
 
 				{/* Dialog para añadir ingrediente */}
-				<Dialog visible={addDialogVisible} onDismiss={() => setAddDialogVisible(false)}>
+				<Dialog visible={addDialogVisible} onDismiss={() => setAddDialogVisible(false)} style={styles.dialogContent}>
 					<Dialog.Title>Nuevo Ingrediente</Dialog.Title>
 					<Dialog.Content>
 						<TextInput
@@ -409,7 +396,7 @@ export default function FormulaDetailScreen() {
 							style={styles.segmentedButtons}
 						/>
 					</Dialog.Content>
-					<Dialog.Actions>
+					<Dialog.Actions style={styles.dialogActions}>
 						<Button onPress={() => setAddDialogVisible(false)}>
 							Cancelar
 						</Button>
@@ -427,6 +414,15 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		padding: Spacing.xl,
+	},
+	loadingText: {
+		marginTop: Spacing.md,
+	},
 	appBar: {
 		elevation: 0,
 	},
@@ -434,92 +430,92 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold',
 	},
 	content: {
-		flex: 1,
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		padding: 32,
-	},
-	loadingText: {
-		marginTop: 16,
-		opacity: 0.7,
+		padding: Spacing.md,
 	},
 	errorCard: {
-		margin: 16,
+		margin: Spacing.md,
 	},
 	errorText: {
-		marginBottom: 16,
+		marginBottom: Spacing.sm,
 		textAlign: 'center',
 	},
 	backButton: {
-		marginTop: 8,
+		marginTop: Spacing.sm,
 	},
-	headerCard: {
-		margin: 16,
-		marginBottom: 8,
+	formulaCard: {
+		marginBottom: Spacing.md,
 	},
-	headerTitle: {
-		fontWeight: 'bold',
-		marginBottom: 4,
+	sectionTitle: {
+		fontWeight: "bold",
+		marginBottom: Spacing.md,
 	},
-	headerSubtitle: {
-		opacity: 0.7,
+	headerSubtitle: {},
+	ingredientsList: {
+		marginBottom: Spacing.sm,
 	},
 	ingredientCard: {
-		marginHorizontal: 16,
-		marginVertical: 8,
-		borderRadius: 12,
+		marginBottom: Spacing.sm,
 	},
-	cardContent: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
+	ingredientContent: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingVertical: Spacing.xs,
 	},
 	ingredientInfo: {
 		flex: 1,
 	},
 	ingredientName: {
-		fontWeight: '600',
-		marginBottom: 4,
+		fontWeight: "500",
 	},
 	ingredientQuantity: {
-		color: '#2E7D9B',
-		fontWeight: 'bold',
+		// Se aplicará color del tema en el componente
+		marginTop: Spacing.xs,
+	},
+	totalCard: {
+		marginTop: Spacing.sm,
+		marginBottom: Spacing.md,
+	},
+	totalContent: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		paddingVertical: Spacing.sm,
 	},
 	emptyCard: {
-		margin: 16,
+		margin: Spacing.md,
 		minHeight: 150,
 	},
 	emptyContent: {
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingVertical: 32,
+		paddingVertical: Spacing.xl,
 	},
 	emptyTitle: {
 		textAlign: 'center',
-		marginBottom: 8,
-		opacity: 0.8,
+		marginBottom: Spacing.sm,
 	},
 	emptySubtitle: {
 		textAlign: 'center',
-		opacity: 0.6,
 	},
 	fab: {
-		position: 'absolute',
-		margin: 16,
-		right: 0,
-		bottom: 0,
+		position: "absolute",
+		right: Spacing.md,
+		bottom: Spacing.md,
 	},
 	dialogInput: {
-		marginBottom: 12,
+		marginBottom: Spacing.md,
 	},
 	unitLabel: {
-		marginBottom: 8,
-		marginTop: 4,
+		marginBottom: Spacing.sm,
+		marginTop: Spacing.xs,
 	},
 	segmentedButtons: {
-		marginBottom: 8,
+		marginBottom: Spacing.sm,
+	},
+	dialogContent: {
+		padding: Spacing.md,
+	},
+	dialogActions: {
+		padding: Spacing.md,
 	},
 });

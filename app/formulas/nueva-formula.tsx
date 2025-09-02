@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
 	StyleSheet,
-	View,
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
+	View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Spacing, BorderRadius } from "@/constants/Spacing";
 import {
 	Appbar,
 	Surface,
@@ -24,8 +25,8 @@ import {
 } from "react-native-paper";
 import { addFormula, getFormulas } from "@/api/formulasApi";
 import { showSuccess, showError } from "@/utils/toast";
-import uuid from "react-native-uuid";
 import { useNavigation } from "@react-navigation/native";
+import uuid from "react-native-uuid";
 
 export default function NuevaFormulaScreen() {
 	const [nombreColor, setNombreColor] = useState("");
@@ -75,7 +76,7 @@ export default function NuevaFormulaScreen() {
 			showError("Error", "La cantidad debe ser un número mayor que cero");
 			return;
 		}
-		const ingredienteConId = { ...nuevoIngrediente, id: uuid.v4() as string };
+		const ingredienteConId = { ...nuevoIngrediente, id: uuid.v4().toString() };
 		setIngredientes([...ingredientes, ingredienteConId]);
 		setNuevoIngrediente({ id: "", nombre: "", cantidad: "", unidad: "gr" });
 	};
@@ -111,7 +112,7 @@ export default function NuevaFormulaScreen() {
 			}
 
 			await addFormula({
-				id: uuid.v4() as string,
+				id: uuid.v4().toString(),
 				nombreColor,
 				ingredientes: ingredientes.map(({ id, cantidad, ...rest }) => ({
 					...rest,
@@ -159,7 +160,7 @@ export default function NuevaFormulaScreen() {
 								</Text>
 								
 								{ingredientes.length === 0 ? (
-									<Text variant="bodyMedium" style={styles.emptyText}>
+									<Text variant="bodyMedium" style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
 										Agrega al menos un ingrediente
 									</Text>
 								) : (
@@ -171,7 +172,7 @@ export default function NuevaFormulaScreen() {
 														<Text variant="bodyLarge" style={styles.ingredientName}>
 															{ing.nombre}
 														</Text>
-														<Text variant="bodyMedium" style={styles.ingredientQuantity}>
+														<Text variant="bodyMedium" style={[styles.ingredientQuantity, { color: theme.colors.onSurfaceVariant }]}>
 															{ing.cantidad} {ing.unidad}
 														</Text>
 													</View>
@@ -187,7 +188,7 @@ export default function NuevaFormulaScreen() {
 									</View>
 								)}
 
-								<View style={styles.addIngredientSection}>
+								<View style={[styles.addIngredientSection, { backgroundColor: theme.colors.surfaceVariant }]}>
 									<Text variant="titleSmall" style={styles.addIngredientTitle}>
 										Nuevo ingrediente:
 									</Text>
@@ -263,33 +264,33 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	content: {
-		padding: 16,
+		padding: Spacing.md,
 	},
 	formCard: {
-		marginBottom: 16,
+		marginBottom: Spacing.md,
 	},
 	sectionTitle: {
 		fontWeight: "bold",
-		marginBottom: 12,
+		marginBottom: Spacing.md,
 	},
 	input: {
-		marginBottom: 8,
+		marginBottom: Spacing.sm,
 	},
 	emptyText: {
-		color: "#666",
+		// Se aplicará color del tema en el componente
 		fontStyle: "italic",
-		marginBottom: 16,
+		marginBottom: Spacing.md,
 	},
 	ingredientsList: {
-		marginBottom: 16,
+		marginBottom: Spacing.md,
 	},
 	ingredientCard: {
-		marginBottom: 8,
+		marginBottom: Spacing.sm,
 	},
 	ingredientContent: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingVertical: 4,
+		paddingVertical: Spacing.xs,
 	},
 	ingredientInfo: {
 		flex: 1,
@@ -298,42 +299,42 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	ingredientQuantity: {
-		color: "#666",
-		marginTop: 2,
+		// Se aplicará color del tema en el componente
+		marginTop: Spacing.xs,
 	},
 	addIngredientSection: {
-		backgroundColor: "#f5f5f5",
-		borderRadius: 8,
-		padding: 16,
-		marginTop: 8,
+		// Se aplicará color del tema en el componente
+		borderRadius: BorderRadius.sm,
+		padding: Spacing.md,
+		marginTop: Spacing.sm,
 	},
 	addIngredientTitle: {
 		fontWeight: "600",
-		marginBottom: 12,
+		marginBottom: Spacing.md,
 	},
 	quantityRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginBottom: 12,
+		marginBottom: Spacing.md,
 	},
 	unitsSection: {
-		marginBottom: 16,
+		marginBottom: Spacing.md,
 	},
 	unitsLabel: {
-		marginBottom: 8,
+		marginBottom: Spacing.sm,
 		fontWeight: "500",
 	},
 	segmentedButtons: {
-		marginBottom: 8,
+		marginBottom: Spacing.sm,
 	},
 	addIngredientButton: {
-		marginTop: 8,
+		marginTop: Spacing.sm,
 	},
 	submitButton: {
-		marginTop: 16,
-		marginBottom: 32,
+		marginTop: Spacing.md,
+		marginBottom: Spacing.xl,
 	},
 	submitButtonContent: {
-		paddingVertical: 8,
+		paddingVertical: Spacing.sm,
 	},
 });

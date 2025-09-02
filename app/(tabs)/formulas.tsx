@@ -1,30 +1,31 @@
-import React, { useState, useCallback } from "react";
+import { deleteFormula, getFormulas } from "@/api/formulasApi";
+import type { Formula } from "@/types/formulas";
+import { showError, showSuccess } from "@/utils/toast";
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
+import { Spacing, BorderRadius } from "@/constants/Spacing";
+import { useCallback, useState } from "react";
 import {
-	View,
-	StyleSheet,
-	ScrollView,
-	RefreshControl,
-	Image,
 	FlatList,
+	Image,
+	RefreshControl,
+	ScrollView,
+	StyleSheet,
+	View,
 } from "react-native";
 import {
 	Appbar,
-	Card,
-	IconButton,
 	Button,
-	Text,
+	Card,
 	Dialog,
-	Portal,
-	useTheme,
 	FAB,
-	Surface,
+	IconButton,
 	ActivityIndicator as PaperActivityIndicator,
+	Portal,
+	Surface,
+	Text,
+	useTheme,
 } from "react-native-paper";
-import { getFormulas, deleteFormula } from "@/api/formulasApi";
-import type { Formula } from "@/types/formulas";
-import { useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
-import { showSuccess, showError } from "@/utils/toast";
 
 export default function FormulasScreen() {
 	const theme = useTheme();
@@ -162,11 +163,8 @@ export default function FormulasScreen() {
 				</ScrollView>
 			) : isLoading ? (
 				<View style={styles.loadingContainer}>
-					<PaperActivityIndicator 
-						size="large" 
-						color={theme.colors.primary} 
-					/>
-					<Text variant="bodyLarge" style={styles.loadingText}>
+					<PaperActivityIndicator animating={true} size="large" />
+					<Text variant="bodyLarge" style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
 						Cargando fórmulas...
 					</Text>
 				</View>
@@ -184,9 +182,9 @@ export default function FormulasScreen() {
 							/>
 							<View style={styles.headerTextContainer}>
 								<Text variant="headlineMedium" style={styles.headerTitle}>
-									Gestión de Fórmulas
+									Fórmulas
 								</Text>
-								<Text variant="bodyMedium" style={styles.headerSubtitle}>
+								<Text variant="bodyMedium" style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
 									{formulas.length} fórmulas disponibles
 								</Text>
 							</View>
@@ -195,11 +193,11 @@ export default function FormulasScreen() {
 					ListEmptyComponent={
 						<Card style={styles.emptyCard}>
 							<Card.Content style={styles.emptyContent}>
-								<Text variant="titleLarge" style={styles.emptyTitle}>
+								<Text variant="headlineSmall" style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>
 									No hay fórmulas disponibles
 								</Text>
-								<Text variant="bodyMedium" style={styles.emptySubtitle}>
-									Presiona el botón + para agregar tu primera fórmula
+								<Text variant="bodyMedium" style={[styles.emptySubtitle, { color: theme.colors.onSurfaceVariant }]}>
+									Pulsa + para crear tu primera fórmula
 								</Text>
 							</Card.Content>
 						</Card>
@@ -261,31 +259,31 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	headerCard: {
-		margin: 16,
-		padding: 16,
-		borderRadius: 16,
+		margin: Spacing.md,
+		padding: Spacing.md,
+		borderRadius: BorderRadius.lg,
 		flexDirection: 'row',
 		alignItems: 'center',
 	},
 	headerImage: {
 		width: 80,
 		height: 80,
-		marginRight: 16,
+		marginRight: Spacing.md,
 	},
 	headerTextContainer: {
 		flex: 1,
 	},
 	headerTitle: {
 		fontWeight: 'bold',
-		marginBottom: 4,
+		marginBottom: Spacing.xs,
 	},
 	headerSubtitle: {
-		opacity: 0.7,
+		// Se aplicará color del tema en el componente
 	},
 	formulaCard: {
-		marginHorizontal: 16,
-		marginVertical: 8,
-		borderRadius: 12,
+		marginHorizontal: Spacing.md,
+		marginVertical: Spacing.sm,
+		borderRadius: BorderRadius.md,
 	},
 	cardContent: {
 		flexDirection: 'row',
@@ -302,43 +300,42 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
-		padding: 32,
+		padding: Spacing.xl,
 	},
 	loadingText: {
-		marginTop: 16,
-		opacity: 0.7,
+		marginTop: Spacing.md,
+		// Se aplicará color del tema en el componente
 	},
 	errorCard: {
-		margin: 16,
+		margin: Spacing.md,
 	},
 	errorText: {
-		marginBottom: 8,
+		marginBottom: Spacing.sm,
 	},
 	emptyCard: {
-		margin: 16,
+		margin: Spacing.md,
 		minHeight: 200,
 	},
 	emptyContent: {
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingVertical: 32,
+		paddingVertical: Spacing.xl,
 	},
 	emptyTitle: {
 		textAlign: 'center',
-		marginBottom: 8,
-		opacity: 0.8,
+		marginBottom: Spacing.sm,
+		// Se aplicará color del tema en el componente
 	},
 	emptySubtitle: {
 		textAlign: 'center',
-		opacity: 0.6,
+		// Se aplicará color del tema en el componente
 	},
 	listContent: {
-		paddingBottom: 16,
+		paddingBottom: Spacing.md,
 	},
 	fab: {
 		position: 'absolute',
-		margin: 16,
-		right: 0,
-		bottom: 0,
+		right: Spacing.md,
+		bottom: Spacing.md,
 	},
 });
