@@ -9,6 +9,7 @@ import {
 import type { RubberColor } from "@/types/colors";
 import { showError, showSuccess } from "@/utils/toast";
 import { Spacing, BorderRadius } from "@/constants/Spacing";
+import AnimatedQuantity from "@/components/AnimatedQuantity";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -293,13 +294,14 @@ export default function HomeScreen() {
 									<Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 4 }}>
 										{item.name}
 									</Text>
-									<Chip
-										mode="outlined"
-										compact
-										style={{ marginTop: 4 }}
-									>
-										Cantidad: {item.quantity}
-									</Chip>
+									<View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+										<Text variant="bodyMedium" style={{ marginRight: 8 }}>Cantidad:</Text>
+										<AnimatedQuantity 
+											quantity={item.quantity} 
+											variant="titleMedium"
+											style={{ fontWeight: '600' }}
+										/>
+									</View>
 								</View>
 								<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 									<IconButton
@@ -308,9 +310,11 @@ export default function HomeScreen() {
 										onPress={() => adjustQuantity(item.id, -1)}
 										mode="contained-tonal"
 									/>
-									<Text variant="headlineSmall" style={{ marginHorizontal: 8 }}>
-										{item.quantity}
-									</Text>
+									<AnimatedQuantity 
+										quantity={item.quantity} 
+										variant="headlineSmall"
+										style={{ marginHorizontal: 8, fontWeight: 'bold' }}
+									/>
 									<IconButton
 										icon="plus-circle"
 										size={24}
