@@ -228,7 +228,11 @@ export default function FormulaDetailScreen() {
 				<Appbar.Content title={capitalizeFirstLetter(formula.nombreColor)} titleStyle={styles.appBarTitle} />
 			</Appbar.Header>
 
-			<ScrollView style={styles.content}>
+			<ScrollView 
+				style={styles.content}
+				contentContainerStyle={styles.scrollContent}
+				showsVerticalScrollIndicator={false}
+			>
 				<Card style={styles.formulaCard}>
 					<Card.Content>
 						<Text variant="headlineSmall" style={styles.sectionTitle}>
@@ -251,19 +255,31 @@ export default function FormulaDetailScreen() {
 						return (
 							<Card
 								key={`${formula?.id || "formula"}-${index}`}
-								style={styles.ingredientCard}
+								style={styles.ingredientsCard}
 								onPress={() => handleIngredientPress(ingrediente, index)}
+								mode="elevated"
+								elevation={1}
 							>
-								<Card.Content style={styles.ingredientContent}>
-									<View style={styles.ingredientInfo}>
-										<Text variant="titleMedium" style={styles.ingredientName}>
+								<Card.Content style={styles.ingredientsContent}>
+									<View style={styles.ingredientsInfo}>
+										<Text variant="titleMedium" style={[styles.ingredientsName, { color: theme.colors.onSurface }]}>
 											{capitalizeFirstLetter(name)}
 										</Text>
-										<Text variant="bodyLarge" style={styles.ingredientQuantity}>
-											{quantity} {unit}
-										</Text>
+										<View style={styles.quantityContainer}>
+											<Text variant="headlineMedium" style={[styles.quantityNumber, { color: theme.colors.primary }]}>
+												{quantity}
+											</Text>
+											<Text variant="bodyMedium" style={[styles.quantityUnit, { color: theme.colors.onSurfaceVariant }]}>
+												{unit}
+											</Text>
+										</View>
 									</View>
-									<IconButton icon="pencil" size={20} />
+									<IconButton 
+										icon="pencil" 
+										size={20} 
+										iconColor={theme.colors.onSurfaceVariant}
+										mode="contained-tonal"
+									/>
 								</Card.Content>
 							</Card>
 						);
@@ -430,7 +446,10 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold',
 	},
 	content: {
-		padding: Spacing.md,
+		padding: 16,
+	},
+	scrollContent: {
+		paddingBottom: 88, // Múltiplo de 4 + espacio para FAB
 	},
 	errorCard: {
 		margin: Spacing.md,
@@ -443,33 +462,46 @@ const styles = StyleSheet.create({
 		marginTop: Spacing.sm,
 	},
 	formulaCard: {
-		marginBottom: Spacing.md,
+		marginBottom: 16,
+		borderRadius: 12,
 	},
 	sectionTitle: {
-		fontWeight: "bold",
-		marginBottom: Spacing.md,
+		marginBottom: 16,
 	},
 	headerSubtitle: {},
 	ingredientsList: {
 		marginBottom: Spacing.sm,
 	},
-	ingredientCard: {
-		marginBottom: Spacing.sm,
+	ingredientsCard: {
+		marginBottom: 8,
+		borderRadius: 12,
 	},
-	ingredientContent: {
+	ingredientsContent: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingVertical: Spacing.xs,
+		paddingVertical: 12,
+		paddingHorizontal: 16,
 	},
-	ingredientInfo: {
+	ingredientsInfo: {
 		flex: 1,
 	},
-	ingredientName: {
-		fontWeight: "500",
+	ingredientsName: {
+		marginBottom: 4,
 	},
-	ingredientQuantity: {
+	ingredientsQuantity: {
 		// Se aplicará color del tema en el componente
-		marginTop: Spacing.xs,
+		marginTop: Spacing.sm,
+	},
+	quantityContainer: {
+		flexDirection: 'row',
+		alignItems: 'baseline',
+		marginTop: 4,
+	},
+	quantityNumber: {
+		marginRight: 4,
+	},
+	quantityUnit: {
+		// Color se aplicará desde el tema
 	},
 	totalCard: {
 		marginTop: Spacing.sm,

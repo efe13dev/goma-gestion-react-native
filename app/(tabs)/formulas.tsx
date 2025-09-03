@@ -109,13 +109,14 @@ export default function FormulasScreen() {
 			<Card.Content>
 				<View style={styles.cardContent}>
 					<View style={styles.formulaInfo}>
-						<Text variant="titleMedium" style={styles.formulaName}>
+						<Text variant="titleMedium" style={[styles.formulaName, { color: theme.colors.onSurface }]}>
 							{item.nombreColor.charAt(0).toUpperCase() + item.nombreColor.slice(1)}
 						</Text>
 					</View>
 					<IconButton
 						icon="chevron-right"
-						size={24}
+						size={20}
+						iconColor={theme.colors.onSurfaceVariant}
 						onPress={() => router.push(`/formulas/${item.id}`)}
 					/>
 				</View>
@@ -274,7 +275,6 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	headerTitle: {
-		fontWeight: 'bold',
 		marginBottom: Spacing.xs,
 	},
 	headerSubtitle: {
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	formulaName: {
-		fontWeight: '600',
+		// Usa la variante nativa de MD3
 	},
 	loadingContainer: {
 		flex: 1,
@@ -308,6 +308,7 @@ const styles = StyleSheet.create({
 	},
 	errorCard: {
 		margin: Spacing.md,
+		borderRadius: BorderRadius.md,
 	},
 	errorText: {
 		marginBottom: Spacing.sm,
@@ -315,6 +316,7 @@ const styles = StyleSheet.create({
 	emptyCard: {
 		margin: Spacing.md,
 		minHeight: 200,
+		borderRadius: BorderRadius.md,
 	},
 	emptyContent: {
 		alignItems: 'center',
