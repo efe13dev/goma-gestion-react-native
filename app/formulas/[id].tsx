@@ -466,6 +466,7 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 	},
 	sectionTitle: {
+		fontWeight: "bold",
 		marginBottom: 16,
 	},
 	headerSubtitle: {},
