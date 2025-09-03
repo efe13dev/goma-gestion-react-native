@@ -275,6 +275,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	headerTitle: {
+		fontWeight: 'bold',
 		marginBottom: Spacing.xs,
 	},
 	headerSubtitle: {

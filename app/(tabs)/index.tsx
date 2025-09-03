@@ -6,10 +6,10 @@ import {
 	updateColor,
 	updateColorOrder,
 } from "@/api/stockApi";
+import AnimatedQuantity from "@/components/AnimatedQuantity";
+import { BorderRadius, Spacing } from "@/constants/Spacing";
 import type { RubberColor } from "@/types/colors";
 import { showError, showSuccess } from "@/utils/toast";
-import { Spacing, BorderRadius } from "@/constants/Spacing";
-import AnimatedQuantity from "@/components/AnimatedQuantity";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -29,7 +29,6 @@ import {
 	Appbar,
 	Button,
 	Card,
-	Chip,
 	Dialog,
 	FAB,
 	IconButton,
@@ -411,7 +410,7 @@ export default function HomeScreen() {
 							</Card>
 						}
 						contentContainerStyle={styles.listContent}
-						ListFooterComponent={<View style={{ height: 100 }} />}
+						ListFooterComponent={<View style={{ height: 150 }} />}
 						showsVerticalScrollIndicator={false}
 						refreshControl={
 							<RefreshControl
