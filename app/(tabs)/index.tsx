@@ -294,14 +294,6 @@ export default function HomeScreen() {
 									<Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 4 }}>
 										{item.name}
 									</Text>
-									<View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-										<Text variant="bodyMedium" style={{ marginRight: 8 }}>Cantidad:</Text>
-										<AnimatedQuantity 
-											quantity={item.quantity} 
-											variant="titleMedium"
-											style={{ fontWeight: '600' }}
-										/>
-									</View>
 								</View>
 								<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 									<IconButton
