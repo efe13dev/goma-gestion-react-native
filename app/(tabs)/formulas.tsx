@@ -1,10 +1,11 @@
 import { deleteFormula, getFormulas } from "@/api/formulasApi";
+import { BorderRadius, Spacing } from "@/constants/Spacing";
 import type { Formula } from "@/types/formulas";
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { Spacing, BorderRadius } from "@/constants/Spacing";
 import { useCallback, useState } from "react";
+import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import {
 	FlatList,
 	Image,
@@ -29,19 +30,26 @@ import {
 
 export default function FormulasScreen() {
 	const theme = useTheme();
+	const { themeMode, toggleTheme, actualTheme } = useCustomTheme();
 	const router = useRouter();
 	const [formulas, setFormulas] = useState<Formula[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [showSearch, setShowSearch] = useState(false);
+	const [sortBy, setSortBy] = useState<"updated" | "name">("updated");
+	const [sortMenuVisible, setSortMenuVisible] = useState(false);
+	const [selectedFormula, setSelectedFormula] = useState<Formula | null>(null);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
 	const [formulaToDelete, setFormulaToDelete] = useState<Formula | null>(null);
 
 	const loadFormulas = useCallback(async (showRefresh = false) => {
 		if (showRefresh) {
 			setRefreshing(true);
 		} else {
-			setIsLoading(true);
+			setLoading(true);
 		}
 		setError(null);
 		try {
@@ -128,6 +136,10 @@ export default function FormulasScreen() {
 		<Surface style={styles.container}>
 			{/* Appbar con Material Design 3 */}
 			<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+				<Appbar.Action 
+					icon={themeMode === 'auto' ? 'theme-light-dark' : themeMode === 'dark' ? 'weather-night' : 'white-balance-sunny'} 
+					onPress={toggleTheme}
+				/>
 				<Appbar.Content title="Fórmulas" titleStyle={styles.appBarTitle} />
 				<Appbar.Action 
 					icon={refreshing ? "loading" : "refresh"} 
@@ -204,7 +216,7 @@ export default function FormulasScreen() {
 						</Card>
 					}
 					contentContainerStyle={styles.listContent}
-					ListFooterComponent={<View style={{ height: 100 }} />}
+					ListFooterComponent={<View style={{ height: 60 }} />}
 					showsVerticalScrollIndicator={false}
 					refreshControl={
 						<RefreshControl

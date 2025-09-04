@@ -10,22 +10,58 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import { StyleSheet } from "react-native";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import Toast from 'react-native-toast-message';
 import { PaperProvider } from "react-native-paper";
 import { MD3LightThemeCustom, MD3DarkThemeCustom } from "@/theme/md3-theme";
+import { ThemeProvider as CustomThemeProvider, useTheme } from "@/contexts/ThemeContext";
 // import { cargarFormulas } from "@/data/formulas";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+function RootLayoutContent() {
+	const { actualTheme } = useTheme();
+	const theme = actualTheme === "dark" ? MD3DarkThemeCustom : MD3LightThemeCustom;
+
+	return (
+		<PaperProvider theme={theme}>
+			<ThemeProvider value={actualTheme === "dark" ? DarkTheme : DefaultTheme}>
+				<Stack
+					screenOptions={{
+						headerBackTitle: "Volver",
+					}}
+				>
+					<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+					<Stack.Screen name="+not-found" />
+					<Stack.Screen
+						name="formulas/[id]"
+						options={{
+							headerShown: false,
+							title: "Volver",
+							headerBackTitle: "Volver",
+							headerBackVisible: true,
+						}}
+					/>
+					<Stack.Screen
+						name="formulas/nueva-formula"
+						options={{
+							title: "Volver",
+							headerBackTitle: "Volver",
+							headerBackVisible: true,
+						}}
+					/>
+				</Stack>
+				<Toast />
+				<StatusBar style={actualTheme === "dark" ? "light" : "dark"} />
+			</ThemeProvider>
+		</PaperProvider>
+	);
+}
+
 export default function RootLayout() {
-	const colorScheme = useColorScheme();
 	const [loaded] = useFonts({
 		SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
 	});
-
-	const theme = colorScheme === "dark" ? MD3DarkThemeCustom : MD3LightThemeCustom;
 
 	useEffect(() => {
 		// Cargar las fórmulas desde el archivo al iniciar la aplicación
@@ -53,36 +89,8 @@ export default function RootLayout() {
 	}
 
 	return (
-		<PaperProvider theme={theme}>
-			<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-				<Stack
-					screenOptions={{
-						headerBackTitle: "Volver",
-					}}
-				>
-					<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-					<Stack.Screen name="+not-found" />
-					<Stack.Screen
-						name="formulas/[id]"
-						options={{
-							headerShown: false,
-							title: "Volver",
-							headerBackTitle: "Volver",
-							headerBackVisible: true,
-						}}
-					/>
-					<Stack.Screen
-						name="formulas/nueva-formula"
-						options={{
-							title: "Volver",
-							headerBackTitle: "Volver",
-							headerBackVisible: true,
-						}}
-					/>
-				</Stack>
-				<Toast />
-				<StatusBar style="auto" />
-			</ThemeProvider>
-		</PaperProvider>
+		<CustomThemeProvider>
+			<RootLayoutContent />
+		</CustomThemeProvider>
 	);
 }

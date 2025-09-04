@@ -188,7 +188,7 @@ export default function NuevaFormulaScreen() {
 									</View>
 								)}
 
-								<View style={[styles.addIngredientSection, { backgroundColor: theme.colors.surfaceVariant }]}>
+								<Surface style={[styles.addIngredientSection, { backgroundColor: theme.colors.elevation.level1 }]} elevation={1}>
 									<Text variant="titleSmall" style={styles.addIngredientTitle}>
 										Nuevo ingrediente:
 									</Text>
@@ -238,7 +238,7 @@ export default function NuevaFormulaScreen() {
 									>
 										Agregar Ingrediente
 									</Button>
-								</View>
+								</Surface>
 							</Card.Content>
 						</Card>
 
@@ -268,16 +268,15 @@ const styles = StyleSheet.create({
 	},
 	formCard: {
 		marginBottom: Spacing.md,
+		borderRadius: BorderRadius.md, // MD3 standard para cards
 	},
 	sectionTitle: {
-		fontWeight: "bold",
 		marginBottom: Spacing.md,
 	},
 	input: {
 		marginBottom: Spacing.sm,
 	},
 	emptyText: {
-		// Se aplicará color del tema en el componente
 		fontStyle: "italic",
 		marginBottom: Spacing.md,
 	},
@@ -286,30 +285,28 @@ const styles = StyleSheet.create({
 	},
 	ingredientCard: {
 		marginBottom: Spacing.sm,
+		borderRadius: BorderRadius.md, // MD3 standard para cards
 	},
 	ingredientContent: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingVertical: Spacing.xs,
+		paddingVertical: Spacing.sm,
 	},
 	ingredientInfo: {
 		flex: 1,
 	},
 	ingredientName: {
-		fontWeight: "500",
+		// Removido fontWeight, se usa variant del Text
 	},
 	ingredientQuantity: {
-		// Se aplicará color del tema en el componente
 		marginTop: Spacing.xs,
 	},
 	addIngredientSection: {
-		// Se aplicará color del tema en el componente
-		borderRadius: BorderRadius.sm,
+		borderRadius: BorderRadius.lg, // MD3 para elementos destacados
 		padding: Spacing.md,
 		marginTop: Spacing.sm,
 	},
 	addIngredientTitle: {
-		fontWeight: "600",
 		marginBottom: Spacing.md,
 	},
 	quantityRow: {
@@ -322,7 +319,6 @@ const styles = StyleSheet.create({
 	},
 	unitsLabel: {
 		marginBottom: Spacing.sm,
-		fontWeight: "500",
 	},
 	segmentedButtons: {
 		marginBottom: Spacing.sm,
@@ -332,7 +328,8 @@ const styles = StyleSheet.create({
 	},
 	submitButton: {
 		marginTop: Spacing.md,
-		marginBottom: Spacing.xl,
+		marginBottom: Spacing.lg,
+		borderRadius: BorderRadius.lg, // MD3 para botones destacados
 	},
 	submitButtonContent: {
 		paddingVertical: Spacing.sm,

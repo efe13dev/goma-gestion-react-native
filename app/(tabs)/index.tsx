@@ -39,9 +39,11 @@ import {
 	TextInput,
 	useTheme
 } from "react-native-paper";
+import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 
 export default function HomeScreen() {
 	const theme = useTheme();
+	const { themeMode, toggleTheme, actualTheme } = useCustomTheme();
 	const [inventory, setInventory] = useState<RubberColor[]>([]);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
@@ -333,6 +335,10 @@ export default function HomeScreen() {
 			<Surface style={styles.container}>
 				{/* Appbar con Material Design 3 */}
 				<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+					<Appbar.Action 
+						icon={themeMode === 'auto' ? 'theme-light-dark' : themeMode === 'dark' ? 'weather-night' : 'white-balance-sunny'} 
+						onPress={toggleTheme}
+					/>
 					<Appbar.Content title="Stock" titleStyle={styles.appBarTitle} />
 					<Appbar.Action 
 						icon={refreshing ? "loading" : "refresh"} 
