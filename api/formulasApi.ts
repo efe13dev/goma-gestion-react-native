@@ -65,6 +65,44 @@ const mapLocalToApi = (localFormula: Formula): FormulaAPI => {
 	};
 };
 
+// Interface para nombres de fórmulas (endpoint optimizado)
+interface FormulaName {
+	id: string;
+	name: string;
+}
+
+// Get formula names only (optimized for listing)
+export const getFormulaNames = async (): Promise<FormulaName[]> => {
+	try {
+		const response = await fetch(`${API_URL}${FORMULAS_ENDPOINT}/names`);
+		if (!response.ok) {
+			console.error(`Error en la respuesta de la API: ${response.status}`);
+			return [];
+		}
+
+		let data: unknown;
+		try {
+			data = await response.json();
+		} catch (parseError) {
+			console.error("Error al parsear la respuesta JSON:", parseError);
+			return [];
+		}
+
+		if (!Array.isArray(data)) {
+			console.log("La API no devolvió un array:", data);
+			return [];
+		}
+
+		return data.map((item: any) => ({
+			id: item.name.toLowerCase().replace(/\s+/g, "-"),
+			name: item.name,
+		}));
+	} catch (error) {
+		console.error("Error al obtener los nombres de fórmulas:", error);
+		return [];
+	}
+};
+
 // Get all formulas
 export const getFormulas = async (): Promise<Formula[]> => {
 	try {

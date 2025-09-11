@@ -37,6 +37,30 @@ function capitalizeFirstLetter(text: string) {
 	return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+// Función para convertir cantidades a kilos
+function convertToKilos(cantidad: number, unidad: string): number {
+	switch (unidad.toLowerCase()) {
+		case 'kg':
+			return cantidad;
+		case 'gr':
+		case 'g':
+			return cantidad / 1000;
+		case 'l':
+			// Asumimos densidad del agua (1 L = 1 kg) para líquidos
+			return cantidad;
+		default:
+			return cantidad / 1000; // Por defecto asumimos gramos
+	}
+}
+
+// Función para calcular el peso total en kilos
+function calculateTotalWeight(ingredientes: Ingrediente[]): number {
+	return ingredientes.reduce((total, ingrediente) => {
+		const weightInKilos = convertToKilos(ingrediente.cantidad, ingrediente.unidad);
+		return total + weightInKilos;
+	}, 0);
+}
+
 export default function FormulaDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
@@ -235,12 +259,29 @@ export default function FormulaDetailScreen() {
 			>
 				<Card style={styles.formulaCard}>
 					<Card.Content>
-						<Text variant="headlineSmall" style={styles.sectionTitle}>
-							Ingredientes
-						</Text>
-						<Text variant="bodyMedium" style={styles.headerSubtitle}>
-							{formula.ingredientes?.length || 0} ingredientes en total
-						</Text>
+						<View style={styles.headerRow}>
+							<View style={styles.headerLeft}>
+								<Text variant="headlineSmall" style={styles.sectionTitle}>
+									Ingredientes
+								</Text>
+								<Text variant="bodyMedium" style={styles.headerSubtitle}>
+									{formula.ingredientes?.length || 0} ingredientes en total
+								</Text>
+							</View>
+							<View style={styles.headerRight}>
+								<View style={styles.weightContainer}>
+									<IconButton 
+										icon="scale" 
+										size={24} 
+										iconColor={theme.colors.primary}
+										style={styles.weightIcon}
+									/>
+									<Text variant="titleLarge" style={[styles.weightText, { color: theme.colors.primary }]}>
+										{calculateTotalWeight(formula.ingredientes || []).toFixed(2)} kg
+									</Text>
+								</View>
+							</View>
+						</View>
 					</Card.Content>
 				</Card>
 
@@ -261,12 +302,14 @@ export default function FormulaDetailScreen() {
 								elevation={1}
 							>
 								<Card.Content style={styles.ingredientsContent}>
-									<View style={styles.ingredientsInfo}>
+									<View style={styles.nameSection}>
 										<Text variant="titleMedium" style={[styles.ingredientsName, { color: theme.colors.onSurface }]}>
 											{capitalizeFirstLetter(name)}
 										</Text>
+									</View>
+									<View style={styles.quantitySection}>
 										<View style={styles.quantityContainer}>
-											<Text variant="headlineMedium" style={[styles.quantityNumber, { color: theme.colors.primary }]}>
+											<Text variant="titleLarge" style={[styles.quantityNumber, { color: theme.colors.primary }]}>
 												{quantity}
 											</Text>
 											<Text variant="bodyMedium" style={[styles.quantityUnit, { color: theme.colors.onSurfaceVariant }]}>
@@ -274,12 +317,14 @@ export default function FormulaDetailScreen() {
 											</Text>
 										</View>
 									</View>
-									<IconButton 
-										icon="pencil" 
-										size={20} 
-										iconColor={theme.colors.onSurfaceVariant}
-										mode="contained-tonal"
-									/>
+									<View style={styles.buttonSection}>
+										<IconButton 
+											icon="pencil" 
+											size={20} 
+											iconColor={theme.colors.onSurfaceVariant}
+											mode="contained-tonal"
+										/>
+									</View>
 								</Card.Content>
 							</Card>
 						);
@@ -467,9 +512,31 @@ const styles = StyleSheet.create({
 	},
 	sectionTitle: {
 		fontWeight: "bold",
-		marginBottom: 16,
+		marginBottom: Spacing.xs,
 	},
 	headerSubtitle: {},
+	headerRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	headerLeft: {
+		flex: 1,
+	},
+	headerRight: {
+		alignItems: 'flex-end',
+	},
+	weightContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	weightIcon: {
+		margin: 0,
+		marginRight: Spacing.xs,
+	},
+	weightText: {
+		fontWeight: 'bold',
+	},
 	ingredientsList: {
 		marginBottom: Spacing.sm,
 	},
@@ -486,8 +553,27 @@ const styles = StyleSheet.create({
 	ingredientsInfo: {
 		flex: 1,
 	},
+	ingredientRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	nameSection: {
+		flex: 1,
+		justifyContent: 'center',
+	},
+	quantitySection: {
+		flex: 1,
+		alignItems: 'flex-end',
+		justifyContent: 'center',
+	},
+	buttonSection: {
+		flex: 1,
+		alignItems: 'flex-end',
+		justifyContent: 'center',
+	},
 	ingredientsName: {
-		marginBottom: 4,
+		// Texto del nombre del ingrediente
 	},
 	ingredientsQuantity: {
 		// Se aplicará color del tema en el componente
@@ -496,7 +582,6 @@ const styles = StyleSheet.create({
 	quantityContainer: {
 		flexDirection: 'row',
 		alignItems: 'baseline',
-		marginTop: 4,
 	},
 	quantityNumber: {
 		marginRight: 4,

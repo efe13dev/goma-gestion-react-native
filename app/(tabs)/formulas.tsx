@@ -1,6 +1,11 @@
-import { deleteFormula, getFormulas } from "@/api/formulasApi";
+import { deleteFormula, getFormulaNames } from "@/api/formulasApi";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
-import type { Formula } from "@/types/formulas";
+
+// Tipo para el listado optimizado de fórmulas
+interface FormulaListItem {
+	id: string;
+	name: string;
+}
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -30,20 +35,15 @@ import {
 
 export default function FormulasScreen() {
 	const theme = useTheme();
-	const { themeMode, toggleTheme, actualTheme } = useCustomTheme();
+	const { themeMode, toggleTheme } = useCustomTheme();
 	const router = useRouter();
-	const [formulas, setFormulas] = useState<Formula[]>([]);
+	const [formulas, setFormulas] = useState<FormulaListItem[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
-	const [searchQuery, setSearchQuery] = useState("");
-	const [showSearch, setShowSearch] = useState(false);
-	const [sortBy, setSortBy] = useState<"updated" | "name">("updated");
-	const [sortMenuVisible, setSortMenuVisible] = useState(false);
-	const [selectedFormula, setSelectedFormula] = useState<Formula | null>(null);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
-	const [formulaToDelete, setFormulaToDelete] = useState<Formula | null>(null);
+	const [formulaToDelete, setFormulaToDelete] = useState<FormulaListItem | null>(null);
 
 	const loadFormulas = useCallback(async (showRefresh = false) => {
 		if (showRefresh) {
@@ -53,14 +53,14 @@ export default function FormulasScreen() {
 		}
 		setError(null);
 		try {
-			const fetchedFormulas = await getFormulas();
+			const fetchedFormulas = await getFormulaNames();
 			setFormulas(fetchedFormulas);
 		} catch (err) {
 			const errorMessage = "Error al cargar las fórmulas. Inténtalo de nuevo.";
 			setError(errorMessage);
 			console.error(err);
 		} finally {
-			setIsLoading(false);
+			setLoading(false);
 			setRefreshing(false);
 		}
 	}, []);
@@ -83,7 +83,7 @@ export default function FormulasScreen() {
 		}
 	};
 
-	const confirmDeleteFormula = useCallback((formula: Formula) => {
+	const confirmDeleteFormula = useCallback((formula: FormulaListItem) => {
 		setFormulaToDelete(formula);
 		setDeleteDialogVisible(true);
 	}, []);
@@ -91,7 +91,7 @@ export default function FormulasScreen() {
 	const handleConfirmDelete = async () => {
 		if (formulaToDelete) {
 			setDeleteDialogVisible(false);
-			await handleDeleteFormula(formulaToDelete.id, formulaToDelete.nombreColor);
+			await handleDeleteFormula(formulaToDelete.id, formulaToDelete.name);
 			setFormulaToDelete(null);
 		}
 	};
@@ -106,7 +106,7 @@ export default function FormulasScreen() {
 		}, [loadFormulas]),
 	);
 
-	const renderFormulaItem = ({ item }: { item: Formula }) => (
+	const renderFormulaItem = ({ item }: { item: FormulaListItem }) => (
 		<Card
 			style={styles.formulaCard}
 			mode="elevated"
@@ -118,7 +118,7 @@ export default function FormulasScreen() {
 				<View style={styles.cardContent}>
 					<View style={styles.formulaInfo}>
 						<Text variant="titleMedium" style={[styles.formulaName, { color: theme.colors.onSurface }]}>
-							{item.nombreColor.charAt(0).toUpperCase() + item.nombreColor.slice(1)}
+							{item.name.charAt(0).toUpperCase() + item.name.slice(1)}
 						</Text>
 					</View>
 					<IconButton
@@ -174,7 +174,7 @@ export default function FormulasScreen() {
 						</Card.Actions>
 					</Card>
 				</ScrollView>
-			) : isLoading ? (
+			) : loading ? (
 				<View style={styles.loadingContainer}>
 					<PaperActivityIndicator animating={true} size="large" />
 					<Text variant="bodyLarge" style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
@@ -241,7 +241,7 @@ export default function FormulasScreen() {
 					<Dialog.Title>Confirmar Eliminación</Dialog.Title>
 					<Dialog.Content>
 						<Text variant="bodyLarge">
-							¿Está seguro que desea eliminar la fórmula {formulaToDelete?.nombreColor}?
+							¿Está seguro que desea eliminar la fórmula {formulaToDelete?.name}?
 						</Text>
 					</Dialog.Content>
 					<Dialog.Actions>
