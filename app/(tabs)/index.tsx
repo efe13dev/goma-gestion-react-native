@@ -1,10 +1,8 @@
 import {
 	addColor,
 	deleteColor as apiDeleteColor,
-	getColorOrder,
 	getStock,
 	updateColor,
-	updateColorOrder,
 } from "@/api/stockApi";
 import AnimatedQuantity from "@/components/AnimatedQuantity";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
@@ -12,19 +10,22 @@ import type { RubberColor } from "@/types/colors";
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useState } from "react";
+import Animated, {
+	useSharedValue,
+	useAnimatedStyle,
+	withTiming,
+	withDelay,
+	withSpring,
+	runOnJS,
+} from "react-native-reanimated";
 import {
+	FlatList,
 	Image,
 	RefreshControl,
 	ScrollView,
 	StyleSheet,
 	View,
 } from "react-native";
-import DraggableFlatList, {
-	ScaleDecorator,
-} from "react-native-draggable-flatlist";
-import {
-	GestureHandlerRootView
-} from "react-native-gesture-handler";
 import {
 	Appbar,
 	Button,
@@ -55,9 +56,16 @@ export default function HomeScreen() {
 	const [showForm, setShowForm] = useState(false);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [colorToDelete, setColorToDelete] = useState<RubberColor | null>(null);
-	const [_colorOrder, setColorOrder] = useState<string[]>([]);
 	const [snackbarVisible, setSnackbarVisible] = useState(false);
 	const [snackbarMessage, setSnackbarMessage] = useState("");
+
+	// Animaciones de entrada
+	const headerOpacity = useSharedValue(0);
+	const headerTranslateY = useSharedValue(-50);
+	const contentOpacity = useSharedValue(0);
+	const contentTranslateY = useSharedValue(30);
+	const fabScale = useSharedValue(0);
+	const [animationsStarted, setAnimationsStarted] = useState(false);
 
 	// Función para cargar los datos
 	const loadData = useCallback(async (showRefresh = false) => {
@@ -69,42 +77,7 @@ export default function HomeScreen() {
 		setError(null);
 		try {
 			const data = await getStock();
-			// Cargar el orden guardado de AsyncStorage
-			const savedOrder = await getColorOrder();
-
-			// Si ya tenemos un orden guardado, ordenamos los colores según ese orden
-			if (savedOrder.length > 0) {
-				// Guardamos el orden en el estado
-				setColorOrder(savedOrder);
-
-				// Primero ordenamos los colores que ya conocemos
-				const orderedColors = [...data].sort((a, b) => {
-					const indexA = savedOrder.indexOf(a.id);
-					const indexB = savedOrder.indexOf(b.id);
-
-					// Si ambos colores están en el orden guardado
-					if (indexA !== -1 && indexB !== -1) {
-						return indexA - indexB;
-					}
-
-					// Si solo uno de los colores está en el orden guardado
-					if (indexA !== -1) return -1;
-					if (indexB !== -1) return 1;
-
-					// Si ninguno está en el orden guardado, mantener el orden original
-					return 0;
-				});
-
-				setInventory(orderedColors);
-			} else {
-				// Si no tenemos un orden guardado, simplemente establecemos los datos
-				setInventory(data);
-				// Y guardamos el orden actual
-				const newOrder = data.map((color) => color.id);
-				setColorOrder(newOrder);
-				// También lo guardamos en AsyncStorage
-				await updateColorOrder(data);
-			}
+			setInventory(data);
 		} catch (err) {
 			setError(
 				"No se pudo cargar el inventario. Verifique su conexión e intente nuevamente.",
@@ -120,6 +93,32 @@ export default function HomeScreen() {
 	useEffect(() => {
 		loadData();
 	}, [loadData]);
+
+	// Iniciar animaciones cuando los datos estén cargados
+	useEffect(() => {
+		if (!isLoading && !animationsStarted) {
+			setAnimationsStarted(true);
+			// Animación del header
+			headerOpacity.value = withTiming(1, { duration: 600 });
+			headerTranslateY.value = withSpring(0, {
+				damping: 15,
+				stiffness: 150,
+			});
+
+			// Animación del contenido con delay
+			contentOpacity.value = withDelay(200, withTiming(1, { duration: 500 }));
+			contentTranslateY.value = withDelay(200, withSpring(0, {
+				damping: 15,
+				stiffness: 120,
+			}));
+
+			// Animación del FAB con más delay
+			fabScale.value = withDelay(600, withSpring(1, {
+				damping: 12,
+				stiffness: 200,
+			}));
+		}
+	}, [isLoading, animationsStarted]);
 
 	// Reload data when screen gets focus
 	useFocusEffect(
@@ -247,94 +246,82 @@ export default function HomeScreen() {
 		loadData(true);
 	};
 
-	// Función para manejar el reordenamiento de colores
-	const handleDragEnd = async ({ data }: { data: RubberColor[] }) => {
-		try {
-			setInventory(data);
-			// Guardar el nuevo orden
-			setColorOrder(data.map((color) => color.id));
-			await updateColorOrder(data);
-		} catch (err) {
-			showError(
-				"Error",
-				"No se pudo actualizar el orden en la API. Intente nuevamente.",
-			);
-			console.error("Error updating order:", err);
-		}
-	};
 
 	// Renderizar cada elemento de la lista con Material Design 3
 	const renderItem = useCallback(
-		({
-			item,
-			drag,
-			isActive,
-		}: {
-			item: RubberColor;
-			drag: () => void;
-			isActive: boolean;
-		}) => {
+		({ item }: { item: RubberColor }) => {
 			return (
-				<ScaleDecorator>
-					<Card
-						style={styles.colorCard}
-						mode="elevated"
-						elevation={isActive ? 3 : 1}
-						onLongPress={drag}
-					>
-						<Card.Content>
+				<Card
+					style={styles.colorCard}
+					mode="elevated"
+					elevation={1}
+				>
+					<Card.Content>
+						<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+							<View style={{ flex: 1 }}>
+								<Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 4 }}>
+									{item.name}
+								</Text>
+							</View>
 							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 								<IconButton
-									icon="drag"
+									icon="minus-circle"
 									size={24}
-									onPressIn={drag}
-									disabled={isActive}
-									style={{ marginLeft: -8 }}
+									onPress={() => adjustQuantity(item.id, -1)}
+									mode="contained-tonal"
 								/>
-								<View style={{ flex: 1, marginLeft: 8 }}>
-									<Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 4 }}>
-										{item.name}
-									</Text>
-								</View>
-								<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-									<IconButton
-										icon="minus-circle"
-										size={24}
-										onPress={() => adjustQuantity(item.id, -1)}
-										mode="contained-tonal"
-									/>
-									<AnimatedQuantity 
-										quantity={item.quantity} 
-										variant="headlineSmall"
-										style={{ marginHorizontal: 8, fontWeight: 'bold' }}
-									/>
-									<IconButton
-										icon="plus-circle"
-										size={24}
-										onPress={() => adjustQuantity(item.id, 1)}
-										mode="contained-tonal"
-									/>
-									<IconButton
-										icon="delete"
-										size={24}
-										onPress={() => confirmDeleteColor(item)}
-										iconColor={theme.colors.error}
-									/>
-								</View>
+								<AnimatedQuantity 
+									quantity={item.quantity} 
+									variant="headlineSmall"
+									style={{ marginHorizontal: 8, fontWeight: 'bold' }}
+								/>
+								<IconButton
+									icon="plus-circle"
+									size={24}
+									onPress={() => adjustQuantity(item.id, 1)}
+									mode="contained-tonal"
+								/>
+								<IconButton
+									icon="delete"
+									size={24}
+									onPress={() => confirmDeleteColor(item)}
+									iconColor={theme.colors.error}
+								/>
 							</View>
-						</Card.Content>
-					</Card>
-				</ScaleDecorator>
+						</View>
+					</Card.Content>
+				</Card>
 			);
 		},
 		[adjustQuantity, confirmDeleteColor, theme],
 	);
 
+	// Estilos animados
+	const animatedHeaderStyle = useAnimatedStyle(() => {
+		return {
+			opacity: headerOpacity.value,
+			transform: [{ translateY: headerTranslateY.value }],
+		};
+	});
+
+	const animatedContentStyle = useAnimatedStyle(() => {
+		return {
+			opacity: contentOpacity.value,
+			transform: [{ translateY: contentTranslateY.value }],
+		};
+	});
+
+	const animatedFabStyle = useAnimatedStyle(() => {
+		return {
+			transform: [{ scale: fabScale.value }],
+		};
+	});
+
 	return (
-		<GestureHandlerRootView style={{ flex: 1 }}>
-			<Surface style={styles.container}>
+		<Surface style={styles.container}>
 				{/* Appbar con Material Design 3 */}
-				<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+				<Animated.View style={animatedHeaderStyle}>
+					<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
 					<Appbar.Action 
 						icon={themeMode === 'auto' ? 'theme-light-dark' : themeMode === 'dark' ? 'weather-night' : 'white-balance-sunny'} 
 						onPress={toggleTheme}
@@ -345,7 +332,8 @@ export default function HomeScreen() {
 						onPress={reloadData}
 						disabled={refreshing}
 					/>
-				</Appbar.Header>
+					</Appbar.Header>
+				</Animated.View>
 
 				{/* Contenido principal */}
 				{error ? (
@@ -381,13 +369,13 @@ export default function HomeScreen() {
 						</Text>
 					</View>
 				) : (
-					<DraggableFlatList
-						data={inventory}
-						onDragEnd={handleDragEnd}
-						keyExtractor={(item) => item.id}
-						renderItem={renderItem}
-						ListHeaderComponent={
-							<Surface style={styles.headerCard} elevation={2}>
+					<Animated.View style={[{ flex: 1 }, animatedContentStyle]}>
+						<FlatList
+							data={inventory}
+							keyExtractor={(item) => item.id}
+							renderItem={renderItem}
+							ListHeaderComponent={
+								<Surface style={styles.headerCard} elevation={2}>
 								<Image
 									source={require("../../assets/images/palot.png")}
 									style={styles.headerImage}
@@ -423,17 +411,20 @@ export default function HomeScreen() {
 								refreshing={refreshing}
 								onRefresh={reloadData}
 								colors={[theme.colors.primary]}
-							/>
-						}
-					/>
+								/>
+							}
+						/>
+					</Animated.View>
 				)}
 
 				{/* FAB para agregar nuevo color */}
-				<FAB
-					icon="plus"
-					style={styles.fab}
-					onPress={() => setDialogVisible(true)}
-				/>
+				<Animated.View style={[styles.fabContainer, animatedFabStyle]}>
+					<FAB
+						icon="plus"
+						style={styles.fab}
+						onPress={() => setDialogVisible(true)}
+					/>
+				</Animated.View>
 
 				{/* Dialog para agregar color */}
 				<Portal>
@@ -491,8 +482,7 @@ export default function HomeScreen() {
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>
-			</Surface>
-		</GestureHandlerRootView>
+		</Surface>
 	);
 }
 
@@ -599,10 +589,13 @@ const styles = StyleSheet.create({
 	listContent: {
 		paddingBottom: Spacing.md,
 	},
-	fab: {
+	fabContainer: {
 		position: 'absolute',
 		right: Spacing.md,
 		bottom: Spacing.md,
+	},
+	fab: {
+		// El FAB ahora está dentro del contenedor animado
 	},
 	dialogInput: {
 		marginBottom: Spacing.md,
