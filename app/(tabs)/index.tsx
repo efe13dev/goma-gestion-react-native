@@ -100,23 +100,24 @@ export default function HomeScreen() {
 		if (!isLoading) {
 			SplashScreen.hideAsync(); // Ocultar splash screen aquí
 			if (!animationsStarted) {
+				if (animationsStarted) return; // Evitar que la animación se ejecute si ya se ha iniciado
 				setAnimationsStarted(true);
 				// Animación del header
-				headerOpacity.value = withTiming(1, { duration: 600 });
+				headerOpacity.value = withTiming(1, { duration: 300 });
 				headerTranslateY.value = withSpring(0, {
 					damping: 15,
 					stiffness: 150,
 				});
 
 				// Animación del contenido con delay
-				contentOpacity.value = withDelay(200, withTiming(1, { duration: 500 }));
-				contentTranslateY.value = withDelay(200, withSpring(0, {
+				contentOpacity.value = withDelay(100, withTiming(1, { duration: 300 }));
+				contentTranslateY.value = withDelay(100, withSpring(0, {
 					damping: 15,
 					stiffness: 120,
 				}));
 
 				// Animación del FAB con más delay
-				fabScale.value = withDelay(600, withSpring(1, {
+				fabScale.value = withDelay(350, withSpring(1, {
 					damping: 12,
 					stiffness: 200,
 				}));
@@ -417,7 +418,7 @@ export default function HomeScreen() {
 							</Card>
 						}
 						contentContainerStyle={styles.listContent}
-						ListFooterComponent={<View style={{ height: 150 }} />}
+						ListFooterComponent={<View style={{ height: 80 }} />}
 						showsVerticalScrollIndicator={false}
 						refreshControl={
 							<RefreshControl
