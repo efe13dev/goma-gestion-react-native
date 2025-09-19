@@ -64,24 +64,9 @@ export default function RootLayout() {
 	});
 
 	useEffect(() => {
-		// Cargar las fórmulas desde el archivo al iniciar la aplicación
-		const inicializarDatos = async () => {
-			try {
-				// await cargarFormulas();
-				console.log("Datos de fórmulas inicializados correctamente");
-			} catch (error) {
-				console.error(`Error al inicializar los datos de fórmulas: ${error}`);
-			}
-
-			// Esperar 2 segundos antes de ocultar el splash
-			if (loaded) {
-				setTimeout(() => {
-					SplashScreen.hideAsync();
-				}, 2000);
-			}
-		};
-
-		inicializarDatos();
+		if (loaded) {
+			// SplashScreen.hideAsync(); // Lo moveremos a la pantalla principal
+		}
 	}, [loaded]);
 
 	if (!loaded) {

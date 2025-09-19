@@ -9,6 +9,7 @@ import { BorderRadius, Spacing } from "@/constants/Spacing";
 import type { RubberColor } from "@/types/colors";
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
+import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect, useState } from "react";
 import Animated, {
 	useSharedValue,
@@ -96,33 +97,45 @@ export default function HomeScreen() {
 
 	// Iniciar animaciones cuando los datos estén cargados
 	useEffect(() => {
-		if (!isLoading && !animationsStarted) {
-			setAnimationsStarted(true);
-			// Animación del header
-			headerOpacity.value = withTiming(1, { duration: 600 });
-			headerTranslateY.value = withSpring(0, {
-				damping: 15,
-				stiffness: 150,
-			});
+		if (!isLoading) {
+			SplashScreen.hideAsync(); // Ocultar splash screen aquí
+			if (!animationsStarted) {
+				setAnimationsStarted(true);
+				// Animación del header
+				headerOpacity.value = withTiming(1, { duration: 600 });
+				headerTranslateY.value = withSpring(0, {
+					damping: 15,
+					stiffness: 150,
+				});
 
-			// Animación del contenido con delay
-			contentOpacity.value = withDelay(200, withTiming(1, { duration: 500 }));
-			contentTranslateY.value = withDelay(200, withSpring(0, {
-				damping: 15,
-				stiffness: 120,
-			}));
+				// Animación del contenido con delay
+				contentOpacity.value = withDelay(200, withTiming(1, { duration: 500 }));
+				contentTranslateY.value = withDelay(200, withSpring(0, {
+					damping: 15,
+					stiffness: 120,
+				}));
 
-			// Animación del FAB con más delay
-			fabScale.value = withDelay(600, withSpring(1, {
-				damping: 12,
-				stiffness: 200,
-			}));
+				// Animación del FAB con más delay
+				fabScale.value = withDelay(600, withSpring(1, {
+					damping: 12,
+					stiffness: 200,
+				}));
+			}
 		}
 	}, [isLoading, animationsStarted]);
 
 	// Reload data when screen gets focus
 	useFocusEffect(
 		useCallback(() => {
+			// Resetear la animación cada vez que la pantalla gana foco
+			setAnimationsStarted(false);
+			headerOpacity.value = 0;
+			headerTranslateY.value = -50;
+			contentOpacity.value = 0;
+			contentTranslateY.value = 30;
+			fabScale.value = 0;
+
+			// Cargar los datos
 			loadData();
 		}, [loadData]),
 	);

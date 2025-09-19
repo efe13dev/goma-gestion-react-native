@@ -9,7 +9,14 @@ interface FormulaListItem {
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Animated, {
+	useSharedValue,
+	useAnimatedStyle,
+	withTiming,
+	withDelay,
+	withSpring,
+} from "react-native-reanimated";
 import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import {
 	FlatList,
@@ -44,6 +51,14 @@ export default function FormulasScreen() {
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [formulaToDelete, setFormulaToDelete] = useState<FormulaListItem | null>(null);
+
+	// Animaciones de entrada
+	const headerOpacity = useSharedValue(0);
+	const headerTranslateY = useSharedValue(-50);
+	const contentOpacity = useSharedValue(0);
+	const contentTranslateY = useSharedValue(30);
+	const fabScale = useSharedValue(0);
+	const [animationsStarted, setAnimationsStarted] = useState(false);
 
 	const loadFormulas = useCallback(async (showRefresh = false) => {
 		if (showRefresh) {
@@ -102,9 +117,44 @@ export default function FormulasScreen() {
 
 	useFocusEffect(
 		useCallback(() => {
+			// Resetear la animación cada vez que la pantalla gana foco
+			setAnimationsStarted(false);
+			headerOpacity.value = 0;
+			headerTranslateY.value = -50;
+			contentOpacity.value = 0;
+			contentTranslateY.value = 30;
+			fabScale.value = 0;
+
+			// Cargar los datos
 			loadFormulas();
-		}, [loadFormulas]),
+		}, [loadFormulas]), // No es necesario añadir los shared values a las dependencias
 	);
+
+	// Iniciar animaciones cuando los datos estén cargados
+	useEffect(() => {
+		if (!loading && !animationsStarted) {
+			setAnimationsStarted(true);
+			// Animación del header
+			headerOpacity.value = withTiming(1, { duration: 600 });
+			headerTranslateY.value = withSpring(0, {
+				damping: 15,
+				stiffness: 150,
+			});
+
+			// Animación del contenido con delay
+			contentOpacity.value = withDelay(200, withTiming(1, { duration: 500 }));
+			contentTranslateY.value = withDelay(200, withSpring(0, {
+				damping: 15,
+				stiffness: 120,
+			}));
+
+			// Animación del FAB con más delay
+			fabScale.value = withDelay(600, withSpring(1, {
+				damping: 12,
+				stiffness: 200,
+			}));
+		}
+	}, [loading, animationsStarted]);
 
 	const renderFormulaItem = ({ item }: { item: FormulaListItem }) => (
 		<Card
@@ -125,28 +175,51 @@ export default function FormulasScreen() {
 						icon="chevron-right"
 						size={20}
 						iconColor={theme.colors.onSurfaceVariant}
-						onPress={() => router.push(`/formulas/${item.id}`)}
+						iconPress={() => router.push(`/formulas/${item.id}`)}
 					/>
 				</View>
 			</Card.Content>
 		</Card>
 	);
 
+	// Estilos animados
+	const animatedHeaderStyle = useAnimatedStyle(() => {
+		return {
+			opacity: headerOpacity.value,
+			transform: [{ translateY: headerTranslateY.value }],
+		};
+	});
+
+	const animatedContentStyle = useAnimatedStyle(() => {
+		return {
+			opacity: contentOpacity.value,
+			transform: [{ translateY: contentTranslateY.value }],
+		};
+	});
+
+	const animatedFabStyle = useAnimatedStyle(() => {
+		return {
+			transform: [{ scale: fabScale.value }],
+		};
+	});
+
 	return (
 		<Surface style={styles.container}>
 			{/* Appbar con Material Design 3 */}
-			<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
-				<Appbar.Action 
-					icon={themeMode === 'auto' ? 'theme-light-dark' : themeMode === 'dark' ? 'weather-night' : 'white-balance-sunny'} 
-					onPress={toggleTheme}
-				/>
-				<Appbar.Content title="Fórmulas" titleStyle={styles.appBarTitle} />
-				<Appbar.Action 
-					icon={refreshing ? "loading" : "refresh"} 
-					onPress={reloadData}
-					disabled={refreshing}
-				/>
-			</Appbar.Header>
+			<Animated.View style={animatedHeaderStyle}>
+				<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+					<Appbar.Action 
+						icon={themeMode === 'auto' ? 'theme-light-dark' : themeMode === 'dark' ? 'weather-night' : 'white-balance-sunny'} 
+						onPress={toggleTheme}
+					/>
+					<Appbar.Content title="Fórmulas" titleStyle={styles.appBarTitle} />
+					<Appbar.Action 
+						icon={refreshing ? "loading" : "refresh"} 
+						onPress={reloadData}
+						disabled={refreshing}
+					/>
+				</Appbar.Header>
+			</Animated.View>
 
 			{/* Contenido principal */}
 			{error ? (
@@ -182,7 +255,8 @@ export default function FormulasScreen() {
 					</Text>
 				</View>
 			) : (
-				<FlatList
+				<Animated.View style={[{ flex: 1 }, animatedContentStyle]}>
+					<FlatList
 					data={formulas}
 					keyExtractor={(item) => item.id.toString()}
 					renderItem={renderFormulaItem}
@@ -226,14 +300,16 @@ export default function FormulasScreen() {
 						/>
 					}
 				/>
-			)}
+			</Animated.View>)}
 
 			{/* FAB para agregar nueva fórmula */}
-			<FAB
-				icon="plus"
-				style={styles.fab}
-				onPress={() => router.push("/formulas/nueva-formula")}
-			/>
+			<Animated.View style={[styles.fab, animatedFabStyle]}>
+				<FAB
+					icon="plus"
+					style={styles.fab}
+					onPress={() => router.push("/formulas/nueva-formula")}
+				/>
+			</Animated.View>
 
 			{/* Dialog para confirmar eliminación */}
 			<Portal>
