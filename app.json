@@ -2,7 +2,7 @@
 	"expo": {
 		"name": "Goma",
 		"slug": "goma-gestion-react-native",
-		"version": "2.2.0",
+		"version": "2.2.1",
 		"orientation": "portrait",
 		"icon": "./assets/images/ic_launcher.png",
 		"scheme": "myapp",
@@ -17,7 +17,7 @@
 				"backgroundColor": "#ffffff"
 			},
 			"package": "com.eefee.gomagestionreactnative",
-			"versionCode": 4
+			"versionCode": 5
 		},
 		"web": {
 			"bundler": "metro",
