@@ -357,7 +357,7 @@ export default function FormulaDetailScreen() {
 					<Dialog.Content>
 						<TextInput
 							label="Nombre"
-							value={editedIngredient.nombre}
+							defaultValue={editedIngredient.nombre}
 							onChangeText={(text) =>
 								setEditedIngredient({ ...editedIngredient, nombre: text })
 							}
@@ -365,7 +365,7 @@ export default function FormulaDetailScreen() {
 						/>
 						<TextInput
 							label="Cantidad"
-							value={editedIngredient.cantidad?.toString() || ""}
+							defaultValue={editedIngredient.cantidad?.toString() || ""}
 							onChangeText={(text) => {
 								const num = Number.parseFloat(text);
 								setEditedIngredient({
@@ -427,7 +427,7 @@ export default function FormulaDetailScreen() {
 					<Dialog.Content>
 						<TextInput
 							label="Nombre"
-							value={newIngredient.nombre}
+							defaultValue={newIngredient.nombre}
 							onChangeText={(text) =>
 								setNewIngredient({ ...newIngredient, nombre: text })
 							}
@@ -435,7 +435,7 @@ export default function FormulaDetailScreen() {
 						/>
 						<TextInput
 							label="Cantidad"
-							value={newIngredient.cantidad}
+							defaultValue={newIngredient.cantidad}
 							onChangeText={(text) => {
 								const cleanText = text.replace(/[^\d.]/g, '');
 								setNewIngredient({ ...newIngredient, cantidad: cleanText });

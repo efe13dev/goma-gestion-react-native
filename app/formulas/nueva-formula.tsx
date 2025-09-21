@@ -148,7 +148,7 @@ export default function NuevaFormulaScreen() {
 								
 								<TextInput
 									label="Nombre del color"
-									value={nombreColor}
+									defaultValue={nombreColor}
 									onChangeText={setNombreColor}
 									mode="outlined"
 									placeholder="Ejemplo: Azul cielo"
@@ -195,7 +195,7 @@ export default function NuevaFormulaScreen() {
 									
 									<TextInput
 										label="Nombre del ingrediente"
-										value={nuevoIngrediente.nombre}
+										defaultValue={nuevoIngrediente.nombre}
 										onChangeText={(text) => handleChangeNuevo("nombre", text)}
 										mode="outlined"
 										style={styles.input}
@@ -204,7 +204,7 @@ export default function NuevaFormulaScreen() {
 									<View style={styles.quantityRow}>
 										<TextInput
 											label="Cantidad"
-											value={nuevoIngrediente.cantidad}
+											defaultValue={nuevoIngrediente.cantidad}
 											onChangeText={(text) => {
 												const filtered = text.replace(/[^0-9.]/g, "");
 												handleChangeNuevo("cantidad", filtered);

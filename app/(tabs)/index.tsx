@@ -95,9 +95,9 @@ export default function HomeScreen() {
 		loadData();
 	}, [loadData]);
 
-	// Iniciar animaciones cuando los datos estén cargados
+	// Iniciar animaciones cuando los datos estén cargados y el modal esté cerrado
 	useEffect(() => {
-		if (!isLoading) {
+		if (!isLoading && !dialogVisible && !deleteDialogVisible) {
 			SplashScreen.hideAsync(); // Ocultar splash screen aquí
 			if (!animationsStarted) {
 				if (animationsStarted) return; // Evitar que la animación se ejecute si ya se ha iniciado
@@ -123,22 +123,24 @@ export default function HomeScreen() {
 				}));
 			}
 		}
-	}, [isLoading, animationsStarted]);
+	}, [isLoading, animationsStarted, dialogVisible, deleteDialogVisible]);
 
 	// Reload data when screen gets focus
 	useFocusEffect(
 		useCallback(() => {
-			// Resetear la animación cada vez que la pantalla gana foco
-			setAnimationsStarted(false);
-			headerOpacity.value = 0;
-			headerTranslateY.value = -50;
-			contentOpacity.value = 0;
-			contentTranslateY.value = 30;
-			fabScale.value = 0;
+			// Resetear la animación cada vez que la pantalla gana foco, pero solo si no hay modales abiertos
+			if (!dialogVisible && !deleteDialogVisible) {
+				setAnimationsStarted(false);
+				headerOpacity.value = 0;
+				headerTranslateY.value = -50;
+				contentOpacity.value = 0;
+				contentTranslateY.value = 30;
+				fabScale.value = 0;
+			}
 
 			// Cargar los datos
 			loadData();
-		}, [loadData]),
+		}, [loadData, dialogVisible, deleteDialogVisible]),
 	);
 
 	const adjustQuantity = useCallback(
@@ -167,7 +169,7 @@ export default function HomeScreen() {
 		[inventory, loadData],
 	);
 
-	const handleAddColor = async () => {
+	const handleAddColor = useCallback(async () => {
 		if (!newColorName.trim()) {
 			showError("Error", "Debe ingresar un nombre para el color");
 			return;
@@ -221,7 +223,7 @@ export default function HomeScreen() {
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [newColorName, newColorQuantity, inventory, loadData]);
 
 	const handleDeleteColor = useCallback(
 		async (name: string) => {
@@ -255,6 +257,16 @@ export default function HomeScreen() {
 			setColorToDelete(null);
 		}
 	};
+
+	const closeDialog = useCallback(() => {
+		setDialogVisible(false);
+		setNewColorName("");
+		setNewColorQuantity("");
+		// Reiniciar animaciones si no hay otros modales abiertos
+		if (!deleteDialogVisible) {
+			setAnimationsStarted(false);
+		}
+	}, [deleteDialogVisible]);
 
 	const reloadData = () => {
 		loadData(true);
@@ -447,14 +459,14 @@ export default function HomeScreen() {
 						<Dialog.Content>
 							<TextInput
 								label="Nombre del color"
-								value={newColorName}
+								defaultValue={newColorName}
 								onChangeText={setNewColorName}
 								mode="outlined"
 								style={styles.dialogInput}
 							/>
 							<TextInput
 								label="Cantidad inicial"
-								value={newColorQuantity}
+								defaultValue={newColorQuantity}
 								onChangeText={setNewColorQuantity}
 								keyboardType="numeric"
 								mode="outlined"
@@ -462,11 +474,7 @@ export default function HomeScreen() {
 							/>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={() => {
-								setDialogVisible(false);
-								setNewColorName("");
-								setNewColorQuantity("");
-							}}>
+							<Button onPress={closeDialog}>
 								Cancelar
 							</Button>
 							<Button mode="contained" onPress={() => {

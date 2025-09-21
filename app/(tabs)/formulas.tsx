@@ -175,7 +175,7 @@ export default function FormulasScreen() {
 						icon="chevron-right"
 						size={20}
 						iconColor={theme.colors.onSurfaceVariant}
-						iconPress={() => router.push(`/formulas/${item.id}`)}
+						onPress={() => router.push(`/formulas/${item.id}`)}
 					/>
 				</View>
 			</Card.Content>
@@ -303,7 +303,7 @@ export default function FormulasScreen() {
 			</Animated.View>)}
 
 			{/* FAB para agregar nueva fórmula */}
-			<Animated.View style={[styles.fab, animatedFabStyle]}>
+			<Animated.View style={[styles.fabContainer, animatedFabStyle]}>
 				<FAB
 					icon="plus"
 					style={styles.fab}
@@ -424,9 +424,12 @@ const styles = StyleSheet.create({
 	listContent: {
 		paddingBottom: Spacing.md,
 	},
-	fab: {
+	fabContainer: {
 		position: 'absolute',
 		right: Spacing.md,
 		bottom: Spacing.md,
+	},
+	fab: {
+		// El FAB ahora está dentro del contenedor animado
 	},
 });
