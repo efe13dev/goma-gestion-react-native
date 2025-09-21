@@ -98,9 +98,9 @@ export default function HomeScreen() {
 	// Iniciar animaciones cuando los datos estén cargados y el modal esté cerrado
 	useEffect(() => {
 		if (!isLoading && !dialogVisible && !deleteDialogVisible) {
-			SplashScreen.hideAsync(); // Ocultar splash screen aquí
+			// Solo ocultar splash screen y ejecutar animaciones si no se han ejecutado antes
 			if (!animationsStarted) {
-				if (animationsStarted) return; // Evitar que la animación se ejecute si ya se ha iniciado
+				SplashScreen.hideAsync(); // Ocultar splash screen aquí
 				setAnimationsStarted(true);
 				// Animación del header
 				headerOpacity.value = withTiming(1, { duration: 300 });
@@ -123,7 +123,7 @@ export default function HomeScreen() {
 				}));
 			}
 		}
-	}, [isLoading, animationsStarted, dialogVisible, deleteDialogVisible]);
+	}, [isLoading, dialogVisible, deleteDialogVisible]);
 
 	// Reload data when screen gets focus
 	useFocusEffect(
