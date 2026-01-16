@@ -303,3 +303,16 @@ API creada por mí en render.com usando Hono.
 ## Licencia
 
 MIT
+
+## ToDo
+
+- **Corregir consistencia al ajustar cantidades en Stock (+/-)**:
+  - Evitar estado "stale" al calcular el nuevo valor (usar actualización funcional con `setInventory(prev => ...)`).
+  - Evitar condiciones de carrera al hacer múltiples `PUT` seguidos (ej: debounce por color o lock por item).
+
+- **Optimizar llamadas a la API al ajustar cantidades**:
+  - Implementar debounce (p. ej. 300ms) por color para agrupar múltiples taps en una sola actualización.
+
+- **Mejorar robustez ante mala conexión**:
+  - Cache local del último stock (mostrar último estado conocido).
+  - Reintentos automáticos / cola de operaciones pendientes para sincronizar.

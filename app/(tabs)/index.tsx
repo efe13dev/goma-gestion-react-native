@@ -6,19 +6,12 @@ import {
 } from "@/api/stockApi";
 import AnimatedQuantity from "@/components/AnimatedQuantity";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
+import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import type { RubberColor } from "@/types/colors";
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import * as SplashScreen from "expo-splash-screen";
-import { useCallback, useEffect, useState } from "react";
-import Animated, {
-	useSharedValue,
-	useAnimatedStyle,
-	withTiming,
-	withDelay,
-	withSpring,
-	runOnJS,
-} from "react-native-reanimated";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	FlatList,
 	Image,
@@ -41,7 +34,13 @@ import {
 	TextInput,
 	useTheme
 } from "react-native-paper";
-import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withDelay,
+	withSpring,
+	withTiming
+} from "react-native-reanimated";
 
 export default function HomeScreen() {
 	const theme = useTheme();
@@ -67,6 +66,24 @@ export default function HomeScreen() {
 	const contentTranslateY = useSharedValue(30);
 	const fabScale = useSharedValue(0);
 	const [animationsStarted, setAnimationsStarted] = useState(false);
+
+	const quantityDebounceTimers = useRef<
+		Record<string, ReturnType<typeof setTimeout> | undefined>
+	>({});
+	const pendingQuantityUpdates = useRef<Record<string, RubberColor | undefined>>(
+		{},
+	);
+	const quantityDebounceMs = 300;
+
+	useEffect(() => {
+		return () => {
+			Object.values(quantityDebounceTimers.current).forEach((t) => {
+				if (t) clearTimeout(t);
+			});
+			quantityDebounceTimers.current = {};
+			pendingQuantityUpdates.current = {};
+		};
+	}, []);
 
 	// Función para cargar los datos
 	const loadData = useCallback(async (showRefresh = false) => {
@@ -146,16 +163,41 @@ export default function HomeScreen() {
 	const adjustQuantity = useCallback(
 		async (id: string, increment: number) => {
 			try {
-				const colorToUpdate = inventory.find((color) => color.id === id);
-				if (!colorToUpdate) return;
-				const updatedColor: RubberColor = {
-					...colorToUpdate,
-					quantity: Math.max(0, colorToUpdate.quantity + increment),
-				};
-				setInventory((prev) =>
-					prev.map((color) => (color.id === id ? updatedColor : color)),
-				);
-				await updateColor(updatedColor);
+				let updatedColor: RubberColor | null = null;
+
+				setInventory((prev) => {
+					const current = prev.find((color) => color.id === id);
+					if (!current) return prev;
+
+					updatedColor = {
+						...current,
+						quantity: Math.max(0, current.quantity + increment),
+					};
+
+					return prev.map((color) => (color.id === id ? updatedColor! : color));
+				});
+
+				if (!updatedColor) return;
+				pendingQuantityUpdates.current[id] = updatedColor;
+				const existingTimer = quantityDebounceTimers.current[id];
+				if (existingTimer) clearTimeout(existingTimer);
+
+				quantityDebounceTimers.current[id] = setTimeout(async () => {
+					const colorToSend = pendingQuantityUpdates.current[id];
+					pendingQuantityUpdates.current[id] = undefined;
+					quantityDebounceTimers.current[id] = undefined;
+					if (!colorToSend) return;
+					try {
+						await updateColor(colorToSend);
+					} catch (err) {
+						showError(
+							"Error",
+							"No se pudo actualizar el inventario en la API. Intente nuevamente.",
+						);
+						loadData();
+						console.error("Error adjusting quantity:", err);
+					}
+				}, quantityDebounceMs);
 			} catch (err) {
 				showError(
 					"Error",
@@ -166,7 +208,7 @@ export default function HomeScreen() {
 				console.error("Error adjusting quantity:", err);
 			}
 		},
-		[inventory, loadData],
+		[loadData],
 	);
 
 	const handleAddColor = useCallback(async () => {

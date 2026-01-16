@@ -1,11 +1,12 @@
-import React, { useEffect, useRef } from 'react';
-import { Text } from 'react-native-paper';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
+import { Text } from 'react-native-paper';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
   Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 
 interface AnimatedQuantityProps {
@@ -19,6 +20,7 @@ export default function AnimatedQuantity({
   variant = 'headlineSmall',
   style 
 }: AnimatedQuantityProps) {
+  const [displayQuantity, setDisplayQuantity] = useState(quantity);
   const previousQuantity = useRef(quantity);
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(1);
@@ -26,36 +28,41 @@ export default function AnimatedQuantity({
   useEffect(() => {
     if (previousQuantity.current !== quantity) {
       const isIncreasing = quantity > previousQuantity.current;
-      
-      // Animación de contador digital
+
+      // Animación rápida: sale el valor anterior, se actualiza el texto, entra el nuevo
+      const exitDistance = 12;
+      const exitDuration = 70;
+      const enterDuration = 90;
+
       translateY.value = withTiming(
-        isIncreasing ? -30 : 30,
-        { 
-          duration: 150, 
-          easing: Easing.out(Easing.quad) 
+        isIncreasing ? -exitDistance : exitDistance,
+        {
+          duration: exitDuration,
+          easing: Easing.out(Easing.quad),
         },
         () => {
-          // Después de salir, resetear posición y entrar desde el lado opuesto
-          translateY.value = isIncreasing ? 30 : -30;
+          runOnJS(setDisplayQuantity)(quantity);
+
+          translateY.value = isIncreasing ? exitDistance : -exitDistance;
           opacity.value = 0;
-          
+
           translateY.value = withTiming(0, {
-            duration: 200,
-            easing: Easing.out(Easing.back(1.2))
+            duration: enterDuration,
+            easing: Easing.out(Easing.quad),
           });
-          
+
           opacity.value = withTiming(1, {
-            duration: 200,
-            easing: Easing.out(Easing.quad)
+            duration: enterDuration,
+            easing: Easing.out(Easing.quad),
           });
-        }
+        },
       );
-      
+
       opacity.value = withTiming(0, {
-        duration: 150,
-        easing: Easing.in(Easing.quad)
+        duration: exitDuration,
+        easing: Easing.in(Easing.quad),
       });
-      
+
       previousQuantity.current = quantity;
     }
   }, [quantity]);
@@ -71,7 +78,7 @@ export default function AnimatedQuantity({
     <View style={{ overflow: 'hidden' }}>
       <Animated.View style={animatedStyle}>
         <Text variant={variant} style={style}>
-          {quantity}
+          {displayQuantity}
         </Text>
       </Animated.View>
     </View>
