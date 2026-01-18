@@ -122,6 +122,7 @@ Se implementó un sistema de notificaciones toast personalizado usando `react-na
   - Tabs activos/inactivos con colores MD3 adecuados para mejor visibilidad.
   - Splash screen usando `assets/images/splash-init.png` con `resizeMode: contain` y fondo blanco.
   - En rutas `formulas/[id]` y `formulas/nueva-formula` se oculta el header del Stack porque renderizan su propio `Appbar`.
+- Ajuste de cantidad en Stock (`+/-`) con actualización más robusta y debounce (300ms) para reducir llamadas a la API.
 
 ## Animaciones Implementadas
 
@@ -130,6 +131,7 @@ Se implementó un sistema de notificaciones toast personalizado usando `react-na
   - Contenido sube desde abajo con delay y `withSpring`
   - FAB (botón flotante) aparece con escala usando `withSpring`
 - **Animaciones sincronizadas** con la splash screen para una experiencia fluida
+- **Animación de cantidad** optimizada en Stock (`AnimatedQuantity`) para que el cambio de número se sienta más inmediato.
 - **Sin parpadeo en TextInput** - Solución implementada para eliminar el molesto flickering en los inputs de texto
 
 ## Capturas de pantalla
@@ -160,7 +162,7 @@ Se implementó un sistema de notificaciones toast personalizado usando `react-na
 
 ### Generar APK (Android)
 
-La app está preparada para build con EAS. Versión actual: `2.2.1` (Android `versionCode: 5`).
+La app está preparada para build con EAS. Versión actual: `2.2.2` (Android `versionCode: 6`).
 
 1. Inicia sesión en Expo (si aplica):
    ```bash
@@ -175,7 +177,7 @@ La app está preparada para build con EAS. Versión actual: `2.2.1` (Android `ve
    ```bash
    npx eas build --platform android --profile production
    ```
-5. La versión actual de la app es `2.2.1` con `versionCode: 5` para Android.
+5. La versión actual de la app es `2.2.2` con `versionCode: 6` para Android.
 
 ## Scripts Disponibles
 
@@ -305,13 +307,6 @@ API creada por mí en render.com usando Hono.
 MIT
 
 ## ToDo
-
-- **Corregir consistencia al ajustar cantidades en Stock (+/-)**:
-  - Evitar estado "stale" al calcular el nuevo valor (usar actualización funcional con `setInventory(prev => ...)`).
-  - Evitar condiciones de carrera al hacer múltiples `PUT` seguidos (ej: debounce por color o lock por item).
-
-- **Optimizar llamadas a la API al ajustar cantidades**:
-  - Implementar debounce (p. ej. 300ms) por color para agrupar múltiples taps en una sola actualización.
 
 - **Mejorar robustez ante mala conexión**:
   - Cache local del último stock (mostrar último estado conocido).
