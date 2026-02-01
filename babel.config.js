@@ -12,6 +12,7 @@ module.exports = (api) => {
           },
         },
       ],
+      'react-native-reanimated/plugin',
       // Se ha eliminado el plugin 'module:react-native-dotenv' que estaba causando problemas
     ],
   };

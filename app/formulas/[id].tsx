@@ -1,29 +1,32 @@
-import React, { useState, useEffect } from "react";
+import { addIngredient, getFormulaById, updateFormula } from "@/api/formulasApi";
+import { Spacing } from "@/constants/Spacing";
+import type { Formula } from "@/types/formulas";
+import { showError, showSuccess } from "@/utils/toast";
+import * as FileSystem from "expo-file-system";
+import * as Print from "expo-print";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
+import { useEffect, useState } from "react";
 import {
+	ScrollView,
 	StyleSheet,
 	View,
-	ScrollView,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+	ActivityIndicator,
 	Appbar,
+	Button,
 	Card,
+	Dialog,
+	FAB,
+	IconButton,
+	Portal,
+	SegmentedButtons,
+	Surface,
 	Text,
 	TextInput,
-	Button,
-	Dialog,
-	Portal,
-	IconButton,
-	ActivityIndicator,
-	Surface,
-	FAB,
-	SegmentedButtons,
 	useTheme,
 } from "react-native-paper";
-import { getFormulaById, updateFormula, addIngredient } from "@/api/formulasApi";
-import type { Formula } from "@/types/formulas";
-import { Spacing } from "@/constants/Spacing";
-import { showSuccess, showError } from "@/utils/toast";
 
 type Ingrediente = {
 	nombre: string;
@@ -35,6 +38,24 @@ type Ingrediente = {
 function capitalizeFirstLetter(text: string) {
 	if (!text) return "";
 	return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function escapeHtml(text: string) {
+	return text
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/\"/g, "&quot;")
+		.replace(/'/g, "&#039;");
+}
+
+function sanitizeFilename(text: string) {
+	return text
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/[^a-zA-Z0-9-_ ]/g, "")
+		.trim()
+		.replace(/\s+/g, "-");
 }
 
 // Función para convertir cantidades a kilos
@@ -172,6 +193,92 @@ export default function FormulaDetailScreen() {
 		setAddDialogVisible(true);
 	};
 
+	const handleShareFormula = async () => {
+		if (!formula) return;
+		try {
+			const ingredientsRows = (formula.ingredientes || [])
+				.map((ingrediente) => {
+					const name = escapeHtml(capitalizeFirstLetter(ingrediente.nombre || "-"));
+					const quantity = ingrediente.cantidad ?? "-";
+					const unit = escapeHtml(ingrediente.unidad || "");
+					return `
+						<tr>
+							<td>${name}</td>
+							<td>${quantity}</td>
+							<td>${unit}</td>
+						</tr>
+					`;
+				})
+				.join("");
+
+			const totalWeight = calculateTotalWeight(formula.ingredientes || []).toFixed(2);
+			const title = escapeHtml(capitalizeFirstLetter(formula.nombreColor));
+			const html = `
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<meta charset="utf-8" />
+					<style>
+						:root { color-scheme: light; }
+						* { box-sizing: border-box; }
+						body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 32px; background: #f4f7fb; color: #1f2a44; }
+						.header { background: #ffffff; border-radius: 16px; padding: 20px 24px; box-shadow: 0 6px 18px rgba(31, 42, 68, 0.08); margin-bottom: 24px; }
+						.title { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+						.subtitle { margin: 0; font-size: 14px; color: #51607a; }
+						.meta { margin-top: 12px; display: inline-flex; gap: 16px; font-size: 13px; color: #34425c; }
+						table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 18px rgba(31, 42, 68, 0.08); }
+						thead { background: #e9eff7; }
+						th, td { text-align: left; padding: 12px 16px; font-size: 14px; }
+						th { font-weight: 600; color: #2a3b58; }
+						tr:nth-child(even) td { background: #f8fafd; }
+						.footer { margin-top: 18px; font-size: 12px; color: #6b7a94; }
+					</style>
+				</head>
+				<body>
+					<div class="header">
+						<h1 class="title">${title}</h1>
+						<div class="meta">
+							<span>Ingredientes: ${formula.ingredientes?.length || 0}</span>
+							<span>Peso total: ${totalWeight} kg</span>
+						</div>
+					</div>
+					<table>
+						<thead>
+							<tr>
+								<th>Ingrediente</th>
+								<th>Cantidad</th>
+								<th>Unidad</th>
+							</tr>
+						</thead>
+						<tbody>
+							${ingredientsRows}
+						</tbody>
+					</table>
+				</body>
+				</html>
+			`;
+
+			const { uri } = await Print.printToFileAsync({ html });
+			const rawName = capitalizeFirstLetter(formula.nombreColor || "formula");
+			const safeName = sanitizeFilename(rawName) || "Formula";
+			const targetUri = `${FileSystem.cacheDirectory}${safeName}.pdf`;
+			await FileSystem.copyAsync({ from: uri, to: targetUri });
+			const canShare = await Sharing.isAvailableAsync();
+			if (!canShare) {
+				showError("Error", "No se puede compartir en este dispositivo.");
+				return;
+			}
+			await Sharing.shareAsync(targetUri, {
+				mimeType: "application/pdf",
+				UTI: "com.adobe.pdf",
+				dialogTitle: `Fórmula ${formula.nombreColor}`,
+			});
+		} catch (error) {
+			console.error("Error al compartir la fórmula:", error);
+			showError("Error", "No se pudo generar el archivo para compartir.");
+		}
+	};
+
 	const handleSaveNewIngredient = async () => {
 		if (!newIngredient.nombre.trim() || !newIngredient.cantidad.trim()) {
 			showError("Error", "Completa el nombre y la cantidad del ingrediente");
@@ -250,6 +357,7 @@ export default function FormulaDetailScreen() {
 			<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
 				<Appbar.BackAction onPress={() => router.back()} />
 				<Appbar.Content title={capitalizeFirstLetter(formula.nombreColor)} titleStyle={styles.appBarTitle} />
+				<Appbar.Action icon="share-variant" onPress={handleShareFormula} />
 			</Appbar.Header>
 
 			<ScrollView 

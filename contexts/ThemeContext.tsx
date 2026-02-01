@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 
@@ -86,7 +86,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useTheme debe ser usado dentro de ThemeProvider');
+    return {
+      themeMode: 'auto' as ThemeMode,
+      actualTheme: 'light' as const,
+      toggleTheme: () => {},
+      setThemeMode: () => {},
+    };
   }
   return context;
 }
