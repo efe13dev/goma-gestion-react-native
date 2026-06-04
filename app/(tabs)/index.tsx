@@ -34,13 +34,8 @@ import {
 	TextInput,
 	useTheme
 } from "react-native-paper";
-import Animated, {
-	useAnimatedStyle,
-	useSharedValue,
-	withDelay,
-	withSpring,
-	withTiming
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
+import { useEntranceAnimation } from "@/hooks/useEntranceAnimation";
 
 export default function HomeScreen() {
 	const theme = useTheme();
@@ -60,12 +55,14 @@ export default function HomeScreen() {
 	const [snackbarMessage, setSnackbarMessage] = useState("");
 
 	// Animaciones de entrada
-	const headerOpacity = useSharedValue(0);
-	const headerTranslateY = useSharedValue(-50);
-	const contentOpacity = useSharedValue(0);
-	const contentTranslateY = useSharedValue(30);
-	const fabScale = useSharedValue(0);
-	const [animationsStarted, setAnimationsStarted] = useState(false);
+	const {
+		animationsStarted,
+		start: startEntranceAnimation,
+		reset: resetEntranceAnimation,
+		headerStyle: animatedHeaderStyle,
+		contentStyle: animatedContentStyle,
+		fabStyle: animatedFabStyle,
+	} = useEntranceAnimation();
 
 	const quantityDebounceTimers = useRef<
 		Record<string, ReturnType<typeof setTimeout> | undefined>
@@ -118,46 +115,28 @@ export default function HomeScreen() {
 			// Solo ocultar splash screen y ejecutar animaciones si no se han ejecutado antes
 			if (!animationsStarted) {
 				SplashScreen.hideAsync(); // Ocultar splash screen aquí
-				setAnimationsStarted(true);
-				// Animación del header
-				headerOpacity.value = withTiming(1, { duration: 300 });
-				headerTranslateY.value = withSpring(0, {
-					damping: 15,
-					stiffness: 150,
-				});
-
-				// Animación del contenido con delay
-				contentOpacity.value = withDelay(100, withTiming(1, { duration: 300 }));
-				contentTranslateY.value = withDelay(100, withSpring(0, {
-					damping: 15,
-					stiffness: 120,
-				}));
-
-				// Animación del FAB con más delay
-				fabScale.value = withDelay(350, withSpring(1, {
-					damping: 12,
-					stiffness: 200,
-				}));
+				startEntranceAnimation();
 			}
 		}
-	}, [isLoading, dialogVisible, deleteDialogVisible]);
+	}, [
+		isLoading,
+		dialogVisible,
+		deleteDialogVisible,
+		animationsStarted,
+		startEntranceAnimation,
+	]);
 
 	// Reload data when screen gets focus
 	useFocusEffect(
 		useCallback(() => {
 			// Resetear la animación cada vez que la pantalla gana foco, pero solo si no hay modales abiertos
 			if (!dialogVisible && !deleteDialogVisible) {
-				setAnimationsStarted(false);
-				headerOpacity.value = 0;
-				headerTranslateY.value = -50;
-				contentOpacity.value = 0;
-				contentTranslateY.value = 30;
-				fabScale.value = 0;
+				resetEntranceAnimation();
 			}
 
 			// Cargar los datos
 			loadData();
-		}, [loadData, dialogVisible, deleteDialogVisible]),
+		}, [loadData, dialogVisible, deleteDialogVisible, resetEntranceAnimation]),
 	);
 
 	const adjustQuantity = useCallback(
@@ -230,7 +209,7 @@ export default function HomeScreen() {
 		// Validate that the quantity is a valid number
 		let quantity = 0;
 		if (newColorQuantity.trim()) {
-			quantity = Number.parseInt(newColorQuantity);
+			quantity = Number.parseInt(newColorQuantity, 10);
 			if (Number.isNaN(quantity)) {
 				showError("Error", "La cantidad debe ser un número válido");
 				return;
@@ -306,9 +285,9 @@ export default function HomeScreen() {
 		setNewColorQuantity("");
 		// Reiniciar animaciones si no hay otros modales abiertos
 		if (!deleteDialogVisible) {
-			setAnimationsStarted(false);
+			resetEntranceAnimation();
 		}
-	}, [deleteDialogVisible]);
+	}, [deleteDialogVisible, resetEntranceAnimation]);
 
 	const reloadData = () => {
 		loadData(true);
@@ -363,27 +342,6 @@ export default function HomeScreen() {
 		},
 		[adjustQuantity, confirmDeleteColor, theme],
 	);
-
-	// Estilos animados
-	const animatedHeaderStyle = useAnimatedStyle(() => {
-		return {
-			opacity: headerOpacity.value,
-			transform: [{ translateY: headerTranslateY.value }],
-		};
-	});
-
-	const animatedContentStyle = useAnimatedStyle(() => {
-		return {
-			opacity: contentOpacity.value,
-			transform: [{ translateY: contentTranslateY.value }],
-		};
-	});
-
-	const animatedFabStyle = useAnimatedStyle(() => {
-		return {
-			transform: [{ scale: fabScale.value }],
-		};
-	});
 
 	return (
 		<Surface style={styles.container}>

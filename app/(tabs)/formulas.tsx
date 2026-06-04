@@ -1,22 +1,11 @@
 import { deleteFormula, getFormulaNames } from "@/api/formulasApi";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
-
-// Tipo para el listado optimizado de fórmulas
-interface FormulaListItem {
-	id: string;
-	name: string;
-}
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import Animated, {
-	useSharedValue,
-	useAnimatedStyle,
-	withTiming,
-	withDelay,
-	withSpring,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
+import { useEntranceAnimation } from "@/hooks/useEntranceAnimation";
 import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import {
 	FlatList,
@@ -40,6 +29,12 @@ import {
 	useTheme,
 } from "react-native-paper";
 
+// Tipo para el listado optimizado de fórmulas
+interface FormulaListItem {
+	id: string;
+	name: string;
+}
+
 export default function FormulasScreen() {
 	const theme = useTheme();
 	const { themeMode, toggleTheme } = useCustomTheme();
@@ -53,12 +48,14 @@ export default function FormulasScreen() {
 	const [formulaToDelete, setFormulaToDelete] = useState<FormulaListItem | null>(null);
 
 	// Animaciones de entrada
-	const headerOpacity = useSharedValue(0);
-	const headerTranslateY = useSharedValue(-50);
-	const contentOpacity = useSharedValue(0);
-	const contentTranslateY = useSharedValue(30);
-	const fabScale = useSharedValue(0);
-	const [animationsStarted, setAnimationsStarted] = useState(false);
+	const {
+		animationsStarted,
+		start: startEntranceAnimation,
+		reset: resetEntranceAnimation,
+		headerStyle: animatedHeaderStyle,
+		contentStyle: animatedContentStyle,
+		fabStyle: animatedFabStyle,
+	} = useEntranceAnimation();
 
 	const loadFormulas = useCallback(async (showRefresh = false) => {
 		if (showRefresh) {
@@ -118,50 +115,31 @@ export default function FormulasScreen() {
 	useFocusEffect(
 		useCallback(() => {
 			// Resetear la animación cada vez que la pantalla gana foco
-			setAnimationsStarted(false);
-			headerOpacity.value = 0;
-			headerTranslateY.value = -50;
-			contentOpacity.value = 0;
-			contentTranslateY.value = 30;
-			fabScale.value = 0;
+			resetEntranceAnimation();
 
 			// Cargar los datos
 			loadFormulas();
-		}, [loadFormulas]), // No es necesario añadir los shared values a las dependencias
+		}, [loadFormulas, resetEntranceAnimation]),
 	);
 
 	// Iniciar animaciones cuando los datos estén cargados
 	useEffect(() => {
 		if (!loading && !animationsStarted) {
-			setAnimationsStarted(true);
-			// Animación del header
-			headerOpacity.value = withTiming(1, { duration: 300 });
-			headerTranslateY.value = withSpring(0, {
-				damping: 15,
-				stiffness: 150,
-			});
-
-			// Animación del contenido con delay
-			contentOpacity.value = withDelay(100, withTiming(1, { duration: 300 }));
-			contentTranslateY.value = withDelay(100, withSpring(0, {
-				damping: 15,
-				stiffness: 120,
-			}));
-
-			// Animación del FAB con más delay
-			fabScale.value = withDelay(350, withSpring(1, {
-				damping: 12,
-				stiffness: 200,
-			}));
+			startEntranceAnimation();
 		}
-	}, [loading, animationsStarted]);
+	}, [loading, animationsStarted, startEntranceAnimation]);
 
 	const renderFormulaItem = ({ item }: { item: FormulaListItem }) => (
 		<Card
 			style={styles.formulaCard}
 			mode="elevated"
 			elevation={1}
-			onPress={() => router.push(`/formulas/${item.id}`)}
+			onPress={() =>
+				router.push({
+					pathname: "/formulas/[id]",
+					params: { id: item.id, name: item.name },
+				})
+			}
 			onLongPress={() => confirmDeleteFormula(item)}
 		>
 			<Card.Content>
@@ -175,33 +153,17 @@ export default function FormulasScreen() {
 						icon="chevron-right"
 						size={20}
 						iconColor={theme.colors.onSurfaceVariant}
-						onPress={() => router.push(`/formulas/${item.id}`)}
+						onPress={() =>
+							router.push({
+								pathname: "/formulas/[id]",
+								params: { id: item.id, name: item.name },
+							})
+						}
 					/>
 				</View>
 			</Card.Content>
 		</Card>
 	);
-
-	// Estilos animados
-	const animatedHeaderStyle = useAnimatedStyle(() => {
-		return {
-			opacity: headerOpacity.value,
-			transform: [{ translateY: headerTranslateY.value }],
-		};
-	});
-
-	const animatedContentStyle = useAnimatedStyle(() => {
-		return {
-			opacity: contentOpacity.value,
-			transform: [{ translateY: contentTranslateY.value }],
-		};
-	});
-
-	const animatedFabStyle = useAnimatedStyle(() => {
-		return {
-			transform: [{ scale: fabScale.value }],
-		};
-	});
 
 	return (
 		<Surface style={styles.container}>

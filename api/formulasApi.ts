@@ -1,9 +1,5 @@
 import type { Formula, Ingrediente } from "@/types/formulas";
-
-// API base URL
-const API_URL = "https://api-rubber-hono.onrender.com";
-// Formulas endpoint
-const FORMULAS_ENDPOINT = "/formulas";
+import { API_URL, FORMULAS_ENDPOINT } from "./config";
 
 // Interface para API data según la documentación
 interface FormulaAPI {
@@ -132,20 +128,30 @@ export const getFormulas = async (): Promise<Formula[]> => {
 	}
 };
 
-// Get formula by ID
-export const getFormulaById = async (id: string): Promise<Formula | null> => {
+// Resuelve el nombre real de la fórmula para la API.
+// La API busca por nombre, no por id. Reconstruir el nombre desde el id es
+// frágil (acentos, dobles espacios, guiones), por eso se prioriza el nombre
+// real cuando la pantalla lo proporciona; la reconstrucción queda como fallback.
+const resolveFormulaName = (id: string, name?: string): string => {
+	if (name && name.trim()) return name;
+	return id.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+};
+
+// Get formula by ID (o por nombre real si se proporciona)
+export const getFormulaById = async (
+	id: string,
+	name?: string,
+): Promise<Formula | null> => {
 	try {
-		// En la API, se busca por nombre, no por ID
-		// Convertimos el ID a un nombre para la API (quitando guiones y capitalizando)
-		const name = id.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+		const resolvedName = resolveFormulaName(id, name);
 
 		const response = await fetch(
-			`${API_URL}${FORMULAS_ENDPOINT}/${encodeURIComponent(name)}`,
+			`${API_URL}${FORMULAS_ENDPOINT}/${encodeURIComponent(resolvedName)}`,
 		);
 
 		if (!response.ok) {
 			if (response.status === 404) {
-				console.log(`Fórmula ${name} no encontrada`);
+				console.log(`Fórmula ${resolvedName} no encontrada`);
 				return null;
 			}
 			console.error(`Error en la respuesta de la API: ${response.status}`);
@@ -201,20 +207,18 @@ export const addFormula = async (formula: Formula): Promise<boolean> => {
 	}
 };
 
-// Update an existing formula
+// Update an existing formula (por id, o por nombre real si se proporciona)
 export const updateFormula = async (
 	id: string,
 	formula: Formula,
+	name?: string,
 ): Promise<boolean> => {
 	try {
 		const apiFormula = mapLocalToApi(formula);
-
-		// En la API, se busca por nombre, no por ID
-		// Convertimos el ID a un nombre para la API (quitando guiones y capitalizando)
-		const name = id.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+		const resolvedName = resolveFormulaName(id, name);
 
 		const response = await fetch(
-			`${API_URL}${FORMULAS_ENDPOINT}/${encodeURIComponent(name)}`,
+			`${API_URL}${FORMULAS_ENDPOINT}/${encodeURIComponent(resolvedName)}`,
 			{
 				method: "PUT",
 				headers: {
@@ -227,7 +231,7 @@ export const updateFormula = async (
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => null);
 			console.error(
-				`Error al actualizar la fórmula ${name}:`,
+				`Error al actualizar la fórmula ${resolvedName}:`,
 				errorData || response.status,
 			);
 			return false;
@@ -240,15 +244,16 @@ export const updateFormula = async (
 	}
 };
 
-// Delete a formula
-export const deleteFormula = async (id: string): Promise<boolean> => {
+// Delete a formula (por id, o por nombre real si se proporciona)
+export const deleteFormula = async (
+	id: string,
+	name?: string,
+): Promise<boolean> => {
 	try {
-		// En la API, se busca por nombre, no por ID
-		// Convertimos el ID a un nombre para la API (quitando guiones y capitalizando)
-		const name = id.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+		const resolvedName = resolveFormulaName(id, name);
 
 		const response = await fetch(
-			`${API_URL}${FORMULAS_ENDPOINT}/${encodeURIComponent(name)}`,
+			`${API_URL}${FORMULAS_ENDPOINT}/${encodeURIComponent(resolvedName)}`,
 			{
 				method: "DELETE",
 			},
@@ -257,7 +262,7 @@ export const deleteFormula = async (id: string): Promise<boolean> => {
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => null);
 			console.error(
-				`Error al eliminar la fórmula ${name}:`,
+				`Error al eliminar la fórmula ${resolvedName}:`,
 				errorData || response.status,
 			);
 			return false;
@@ -274,17 +279,18 @@ export const deleteFormula = async (id: string): Promise<boolean> => {
 export const addIngredient = async (
 	formulaId: string,
 	ingredient: Ingrediente,
+	formulaName?: string,
 ): Promise<boolean> => {
 	try {
 		// Para añadir un ingrediente, obtenemos la fórmula actual
-		const formula = await getFormulaById(formulaId);
+		const formula = await getFormulaById(formulaId, formulaName);
 		if (!formula) return false;
 
 		// Añadimos el nuevo ingrediente
 		formula.ingredientes.push(ingredient);
 
-		// Actualizamos la fórmula completa
-		return await updateFormula(formulaId, formula);
+		// Actualizamos la fórmula completa usando el nombre real devuelto por la API
+		return await updateFormula(formulaId, formula, formula.nombreColor);
 	} catch (error) {
 		console.error(
 			`Error al agregar ingrediente a la fórmula ${formulaId}:`,
@@ -299,10 +305,11 @@ export const updateIngredient = async (
 	formulaId: string,
 	ingredientIndex: number,
 	updatedIngredient: Ingrediente,
+	formulaName?: string,
 ): Promise<boolean> => {
 	try {
 		// Para actualizar un ingrediente, obtenemos la fórmula actual
-		const formula = await getFormulaById(formulaId);
+		const formula = await getFormulaById(formulaId, formulaName);
 		if (
 			!formula ||
 			ingredientIndex < 0 ||
@@ -314,8 +321,8 @@ export const updateIngredient = async (
 		// Actualizamos el ingrediente
 		formula.ingredientes[ingredientIndex] = updatedIngredient;
 
-		// Actualizamos la fórmula completa
-		return await updateFormula(formulaId, formula);
+		// Actualizamos la fórmula completa usando el nombre real devuelto por la API
+		return await updateFormula(formulaId, formula, formula.nombreColor);
 	} catch (error) {
 		console.error(
 			`Error al actualizar ingrediente en la fórmula ${formulaId}:`,
@@ -329,10 +336,11 @@ export const updateIngredient = async (
 export const deleteIngredient = async (
 	formulaId: string,
 	ingredientIndex: number,
+	formulaName?: string,
 ): Promise<boolean> => {
 	try {
 		// Para eliminar un ingrediente, obtenemos la fórmula actual
-		const formula = await getFormulaById(formulaId);
+		const formula = await getFormulaById(formulaId, formulaName);
 		if (
 			!formula ||
 			ingredientIndex < 0 ||
@@ -344,8 +352,8 @@ export const deleteIngredient = async (
 		// Eliminamos el ingrediente
 		formula.ingredientes.splice(ingredientIndex, 1);
 
-		// Actualizamos la fórmula completa
-		return await updateFormula(formulaId, formula);
+		// Actualizamos la fórmula completa usando el nombre real devuelto por la API
+		return await updateFormula(formulaId, formula, formula.nombreColor);
 	} catch (error) {
 		console.error(
 			`Error al eliminar ingrediente de la fórmula ${formulaId}:`,

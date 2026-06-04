@@ -1,8 +1,5 @@
 import type { RubberColor } from '@/types/colors';
-// API base URL
-const API_URL = 'https://api-rubber-hono.onrender.com';
-// Stock endpoint
-const STOCK_ENDPOINT = '/stock'; // Endpoint for stock
+import { API_URL, STOCK_ENDPOINT } from './config';
 
 // Interface for API data
 interface ColorAPI {

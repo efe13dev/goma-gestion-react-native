@@ -1,6 +1,6 @@
 import { addIngredient, getFormulaById, updateFormula } from "@/api/formulasApi";
 import { Spacing } from "@/constants/Spacing";
-import type { Formula } from "@/types/formulas";
+import type { Formula, Ingrediente } from "@/types/formulas";
 import { showError, showSuccess } from "@/utils/toast";
 import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
@@ -28,11 +28,6 @@ import {
 	useTheme,
 } from "react-native-paper";
 
-type Ingrediente = {
-	nombre: string;
-	cantidad: number;
-	unidad: string;
-};
 
 // Función para capitalizar la primera letra de un string
 function capitalizeFirstLetter(text: string) {
@@ -83,7 +78,7 @@ function calculateTotalWeight(ingredientes: Ingrediente[]): number {
 }
 
 export default function FormulaDetailScreen() {
-	const { id } = useLocalSearchParams<{ id: string }>();
+	const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
 	const router = useRouter();
 	const theme = useTheme();
 	const [formula, setFormula] = useState<Formula | null>(null);
@@ -117,7 +112,7 @@ export default function FormulaDetailScreen() {
 		setIsLoading(true);
 		setError(null);
 		try {
-			const fetchedFormula = await getFormulaById(id as string);
+			const fetchedFormula = await getFormulaById(id as string, name);
 			if (fetchedFormula) {
 				setFormula(fetchedFormula);
 			} else {
@@ -141,10 +136,14 @@ export default function FormulaDetailScreen() {
 		if (selectedIngredientIndex === null || !formula) return;
 
 		const updatedIngredients = [...(formula.ingredientes || [])];
-		updatedIngredients[selectedIngredientIndex] = editedIngredient as any;
+		updatedIngredients[selectedIngredientIndex] = editedIngredient;
 
 		try {
-			await updateFormula(id as string, { ...formula, ingredientes: updatedIngredients } as Formula);
+			await updateFormula(
+				id as string,
+				{ ...formula, ingredientes: updatedIngredients },
+				formula.nombreColor,
+			);
 			showSuccess(
 				"Ingrediente actualizado",
 				"El ingrediente se actualizó correctamente",
@@ -172,7 +171,11 @@ export default function FormulaDetailScreen() {
 			const updatedIngredients = formula.ingredientes.filter(
 				(_, index) => index !== selectedIngredientIndex
 			);
-			await updateFormula(id as string, { ...formula, ingredientes: updatedIngredients } as Formula);
+			await updateFormula(
+				id as string,
+				{ ...formula, ingredientes: updatedIngredients },
+				formula.nombreColor,
+			);
 
 			showSuccess(
 				"Ingrediente eliminado",
@@ -291,7 +294,11 @@ export default function FormulaDetailScreen() {
 				cantidad: Number(newIngredient.cantidad),
 				unidad: newIngredient.unidad.trim() || "gr",
 			};
-			const success = await addIngredient(id as string, ingredienteObj);
+			const success = await addIngredient(
+				id as string,
+				ingredienteObj,
+				formula?.nombreColor ?? name,
+			);
 			if (success) {
 				showSuccess(
 					"Ingrediente añadido",

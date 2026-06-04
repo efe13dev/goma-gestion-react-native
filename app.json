@@ -50,6 +50,7 @@
 			"typedRoutes": true
 		},
 		"extra": {
+			"apiUrl": "https://api-rubber-hono.onrender.com",
 			"router": {
 				"origin": false
 			},
