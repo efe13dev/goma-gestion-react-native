@@ -5,11 +5,9 @@ import { Platform } from "react-native";
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useTheme as usePaperTheme } from "react-native-paper";
 
 export default function TabLayout() {
-	const { actualTheme } = useTheme();
 	const paperTheme = usePaperTheme();
 
 	return (

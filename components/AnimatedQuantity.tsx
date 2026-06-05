@@ -65,7 +65,7 @@ export default function AnimatedQuantity({
 
       previousQuantity.current = quantity;
     }
-  }, [quantity]);
+  }, [quantity, opacity, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

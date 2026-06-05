@@ -106,6 +106,7 @@ export default function FormulaDetailScreen() {
 			setError("No se proporcionó ID de fórmula.");
 			setIsLoading(false);
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [id]);
 
 	const fetchFormula = async () => {
@@ -224,6 +225,8 @@ export default function FormulaDetailScreen() {
 					<style>
 						:root { color-scheme: light; }
 						* { box-sizing: border-box; }
+						@page { size: A4; margin: 0; }
+						html { margin: 0; padding: 0; background: #f4f7fb; }
 						body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 32px; background: #f4f7fb; color: #1f2a44; }
 						.header { background: #ffffff; border-radius: 16px; padding: 20px 24px; box-shadow: 0 6px 18px rgba(31, 42, 68, 0.08); margin-bottom: 24px; }
 						.title { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
@@ -261,6 +264,9 @@ export default function FormulaDetailScreen() {
 				</html>
 			`;
 
+			// El tamaño A4 se fuerza vía CSS (@page { size: A4 }). No pasamos
+			// width/height aquí porque provoca que el contenido no ocupe todo el
+			// ancho de la página (margen blanco a la derecha).
 			const { uri } = await Print.printToFileAsync({ html });
 			const rawName = capitalizeFirstLetter(formula.nombreColor || "formula");
 			const safeName = sanitizeFilename(rawName) || "Formula";

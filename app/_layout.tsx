@@ -9,7 +9,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { StyleSheet } from "react-native";
 import Toast from 'react-native-toast-message';
 import { PaperProvider } from "react-native-paper";
 import { MD3LightThemeCustom, MD3DarkThemeCustom } from "@/theme/md3-theme";

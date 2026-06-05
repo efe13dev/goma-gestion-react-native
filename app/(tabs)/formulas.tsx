@@ -35,6 +35,10 @@ interface FormulaListItem {
 	name: string;
 }
 
+// Duración mínima (ms) que se mantiene visible el indicador de recarga manual
+// para que el feedback se perciba intencional y no como un parpadeo.
+const MIN_REFRESH_INDICATOR_MS = 600;
+
 export default function FormulasScreen() {
 	const theme = useTheme();
 	const { themeMode, toggleTheme } = useCustomTheme();
@@ -44,7 +48,7 @@ export default function FormulasScreen() {
 	const [refreshing, setRefreshing] = useState(false);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [isLoading, setIsLoading] = useState(false);
+	const [, setIsLoading] = useState(false);
 	const [formulaToDelete, setFormulaToDelete] = useState<FormulaListItem | null>(null);
 
 	// Animaciones de entrada
@@ -64,6 +68,9 @@ export default function FormulasScreen() {
 			setLoading(true);
 		}
 		setError(null);
+		// Marca de tiempo para garantizar una duración mínima visible del indicador
+		// de recarga y evitar el parpadeo cuando la API responde muy rápido.
+		const startedAt = Date.now();
 		try {
 			const fetchedFormulas = await getFormulaNames();
 			setFormulas(fetchedFormulas);
@@ -72,6 +79,12 @@ export default function FormulasScreen() {
 			setError(errorMessage);
 			console.error(err);
 		} finally {
+			if (showRefresh) {
+				const remaining = MIN_REFRESH_INDICATOR_MS - (Date.now() - startedAt);
+				if (remaining > 0) {
+					await new Promise((resolve) => setTimeout(resolve, remaining));
+				}
+			}
 			setLoading(false);
 			setRefreshing(false);
 		}

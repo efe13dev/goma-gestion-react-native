@@ -224,7 +224,7 @@ export default function NuevaFormulaScreen() {
             });
             showSuccess("Listo", "Fórmula añadida correctamente.");
             router.back();
-        } catch (error) {
+        } catch {
             showError("Error", "No se pudo añadir la fórmula.");
         } finally {
             setIsLoading(false);

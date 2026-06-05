@@ -37,22 +37,22 @@ import {
 import Animated from "react-native-reanimated";
 import { useEntranceAnimation } from "@/hooks/useEntranceAnimation";
 
+// Duración mínima (ms) que se mantiene visible el indicador de recarga manual
+// para que el feedback se perciba intencional y no como un parpadeo.
+const MIN_REFRESH_INDICATOR_MS = 600;
+
 export default function HomeScreen() {
 	const theme = useTheme();
-	const { themeMode, toggleTheme, actualTheme } = useCustomTheme();
+	const { themeMode, toggleTheme } = useCustomTheme();
 	const [inventory, setInventory] = useState<RubberColor[]>([]);
-	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [newColorName, setNewColorName] = useState("");
 	const [newColorQuantity, setNewColorQuantity] = useState("");
 	const [dialogVisible, setDialogVisible] = useState(false);
-	const [showForm, setShowForm] = useState(false);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [colorToDelete, setColorToDelete] = useState<RubberColor | null>(null);
-	const [snackbarVisible, setSnackbarVisible] = useState(false);
-	const [snackbarMessage, setSnackbarMessage] = useState("");
 
 	// Animaciones de entrada
 	const {
@@ -90,6 +90,9 @@ export default function HomeScreen() {
 			setIsLoading(true);
 		}
 		setError(null);
+		// Marca de tiempo para garantizar una duración mínima visible del indicador
+		// de recarga y evitar el parpadeo cuando la API responde muy rápido.
+		const startedAt = Date.now();
 		try {
 			const data = await getStock();
 			setInventory(data);
@@ -99,6 +102,12 @@ export default function HomeScreen() {
 			);
 			console.error("Error loading data:", err);
 		} finally {
+			if (showRefresh) {
+				const remaining = MIN_REFRESH_INDICATOR_MS - (Date.now() - startedAt);
+				if (remaining > 0) {
+					await new Promise((resolve) => setTimeout(resolve, remaining));
+				}
+			}
 			setIsLoading(false);
 			setRefreshing(false);
 		}
