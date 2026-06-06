@@ -5,6 +5,7 @@ import {
 	updateColor,
 } from "@/api/stockApi";
 import AnimatedQuantity from "@/components/AnimatedQuantity";
+import AnimatedListItem from "@/components/AnimatedListItem";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
 import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import type { RubberColor } from "@/types/colors";
@@ -71,6 +72,9 @@ export default function HomeScreen() {
 		{},
 	);
 	const quantityDebounceMs = 300;
+	// Indica si ya se cargaron datos al menos una vez. Evita mostrar el spinner
+	// a pantalla completa (y desmontar la lista) en recargas posteriores.
+	const hasLoadedRef = useRef(false);
 
 	useEffect(() => {
 		return () => {
@@ -86,7 +90,7 @@ export default function HomeScreen() {
 	const loadData = useCallback(async (showRefresh = false) => {
 		if (showRefresh) {
 			setRefreshing(true);
-		} else {
+		} else if (!hasLoadedRef.current) {
 			setIsLoading(true);
 		}
 		setError(null);
@@ -96,6 +100,7 @@ export default function HomeScreen() {
 		try {
 			const data = await getStock();
 			setInventory(data);
+			hasLoadedRef.current = true;
 		} catch (err) {
 			setError(
 				"No se pudo cargar el inventario. Verifique su conexión e intente nuevamente.",
@@ -112,11 +117,6 @@ export default function HomeScreen() {
 			setRefreshing(false);
 		}
 	}, []);
-
-	// Load data when component mounts
-	useEffect(() => {
-		loadData();
-	}, [loadData]);
 
 	// Iniciar animaciones cuando los datos estén cargados y el modal esté cerrado
 	useEffect(() => {
@@ -138,14 +138,10 @@ export default function HomeScreen() {
 	// Reload data when screen gets focus
 	useFocusEffect(
 		useCallback(() => {
-			// Resetear la animación cada vez que la pantalla gana foco, pero solo si no hay modales abiertos
-			if (!dialogVisible && !deleteDialogVisible) {
-				resetEntranceAnimation();
-			}
-
-			// Cargar los datos
+			// Recargar los datos al ganar foco. La animación de entrada se ejecuta
+			// solo en el primer montaje para evitar parpadeos al cambiar de pestaña.
 			loadData();
-		}, [loadData, dialogVisible, deleteDialogVisible, resetEntranceAnimation]),
+		}, [loadData]),
 	);
 
 	const adjustQuantity = useCallback(
@@ -305,8 +301,9 @@ export default function HomeScreen() {
 
 	// Renderizar cada elemento de la lista con Material Design 3
 	const renderItem = useCallback(
-		({ item }: { item: RubberColor }) => {
+		({ item, index }: { item: RubberColor; index: number }) => {
 			return (
+				<AnimatedListItem index={index}>
 				<Card
 					style={styles.colorCard}
 					mode="elevated"
@@ -347,6 +344,7 @@ export default function HomeScreen() {
 						</View>
 					</Card.Content>
 				</Card>
+				</AnimatedListItem>
 			);
 		},
 		[adjustQuantity, confirmDeleteColor, theme],
@@ -362,11 +360,13 @@ export default function HomeScreen() {
 						onPress={toggleTheme}
 					/>
 					<Appbar.Content title="Stock" titleStyle={styles.appBarTitle} />
-					<Appbar.Action 
-						icon={refreshing ? "loading" : "refresh"} 
-						onPress={reloadData}
-						disabled={refreshing}
-					/>
+					{refreshing ? (
+						<View style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}>
+							<PaperActivityIndicator animating size={20} />
+						</View>
+					) : (
+						<Appbar.Action icon="refresh" onPress={reloadData} />
+					)}
 					</Appbar.Header>
 				</Animated.View>
 

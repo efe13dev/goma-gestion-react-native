@@ -3,8 +3,13 @@ import { BorderRadius, Spacing } from "@/constants/Spacing";
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import Animated from "react-native-reanimated";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withSpring,
+} from "react-native-reanimated";
+import AnimatedListItem from "@/components/AnimatedListItem";
 import { useEntranceAnimation } from "@/hooks/useEntranceAnimation";
 import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import {
@@ -39,6 +44,68 @@ interface FormulaListItem {
 // para que el feedback se perciba intencional y no como un parpadeo.
 const MIN_REFRESH_INDICATOR_MS = 600;
 
+// Tarjeta de fórmula con feedback táctil (scale al pulsar) y entrada animada.
+function FormulaCard({
+	item,
+	index,
+	textColor,
+	chevronColor,
+	onOpen,
+	onDelete,
+}: {
+	item: FormulaListItem;
+	index: number;
+	textColor: string;
+	chevronColor: string;
+	onOpen: () => void;
+	onDelete: () => void;
+}) {
+	const scale = useSharedValue(1);
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+	}));
+	const pressConfig = { damping: 18, stiffness: 260 } as const;
+
+	return (
+		<AnimatedListItem index={index}>
+			<Animated.View style={animatedStyle}>
+				<Card
+					style={styles.formulaCard}
+					mode="elevated"
+					elevation={1}
+					onPress={onOpen}
+					onLongPress={onDelete}
+					onPressIn={() => {
+						scale.value = withSpring(0.97, pressConfig);
+					}}
+					onPressOut={() => {
+						scale.value = withSpring(1, pressConfig);
+					}}
+				>
+					<Card.Content>
+						<View style={styles.cardContent}>
+							<View style={styles.formulaInfo}>
+								<Text
+									variant="titleMedium"
+									style={[styles.formulaName, { color: textColor }]}
+								>
+									{item.name.charAt(0).toUpperCase() + item.name.slice(1)}
+								</Text>
+							</View>
+							<IconButton
+								icon="chevron-right"
+								size={20}
+								iconColor={chevronColor}
+								onPress={onOpen}
+							/>
+						</View>
+					</Card.Content>
+				</Card>
+			</Animated.View>
+		</AnimatedListItem>
+	);
+}
+
 export default function FormulasScreen() {
 	const theme = useTheme();
 	const { themeMode, toggleTheme } = useCustomTheme();
@@ -50,12 +117,14 @@ export default function FormulasScreen() {
 	const [error, setError] = useState<string | null>(null);
 	const [, setIsLoading] = useState(false);
 	const [formulaToDelete, setFormulaToDelete] = useState<FormulaListItem | null>(null);
+	// Evita mostrar el spinner a pantalla completa (y desmontar la lista) en
+	// recargas posteriores a la primera carga.
+	const hasLoadedRef = useRef(false);
 
 	// Animaciones de entrada
 	const {
 		animationsStarted,
 		start: startEntranceAnimation,
-		reset: resetEntranceAnimation,
 		headerStyle: animatedHeaderStyle,
 		contentStyle: animatedContentStyle,
 		fabStyle: animatedFabStyle,
@@ -64,7 +133,7 @@ export default function FormulasScreen() {
 	const loadFormulas = useCallback(async (showRefresh = false) => {
 		if (showRefresh) {
 			setRefreshing(true);
-		} else {
+		} else if (!hasLoadedRef.current) {
 			setLoading(true);
 		}
 		setError(null);
@@ -74,6 +143,7 @@ export default function FormulasScreen() {
 		try {
 			const fetchedFormulas = await getFormulaNames();
 			setFormulas(fetchedFormulas);
+			hasLoadedRef.current = true;
 		} catch (err) {
 			const errorMessage = "Error al cargar las fórmulas. Inténtalo de nuevo.";
 			setError(errorMessage);
@@ -127,12 +197,10 @@ export default function FormulasScreen() {
 
 	useFocusEffect(
 		useCallback(() => {
-			// Resetear la animación cada vez que la pantalla gana foco
-			resetEntranceAnimation();
-
-			// Cargar los datos
+			// Recargar al ganar foco; la animación de entrada se ejecuta solo en el
+			// primer montaje para evitar parpadeos al cambiar de pestaña.
 			loadFormulas();
-		}, [loadFormulas, resetEntranceAnimation]),
+		}, [loadFormulas]),
 	);
 
 	// Iniciar animaciones cuando los datos estén cargados
@@ -142,40 +210,26 @@ export default function FormulasScreen() {
 		}
 	}, [loading, animationsStarted, startEntranceAnimation]);
 
-	const renderFormulaItem = ({ item }: { item: FormulaListItem }) => (
-		<Card
-			style={styles.formulaCard}
-			mode="elevated"
-			elevation={1}
-			onPress={() =>
+	const renderFormulaItem = ({
+		item,
+		index,
+	}: {
+		item: FormulaListItem;
+		index: number;
+	}) => (
+		<FormulaCard
+			item={item}
+			index={index}
+			textColor={theme.colors.onSurface}
+			chevronColor={theme.colors.onSurfaceVariant}
+			onOpen={() =>
 				router.push({
 					pathname: "/formulas/[id]",
 					params: { id: item.id, name: item.name },
 				})
 			}
-			onLongPress={() => confirmDeleteFormula(item)}
-		>
-			<Card.Content>
-				<View style={styles.cardContent}>
-					<View style={styles.formulaInfo}>
-						<Text variant="titleMedium" style={[styles.formulaName, { color: theme.colors.onSurface }]}>
-							{item.name.charAt(0).toUpperCase() + item.name.slice(1)}
-						</Text>
-					</View>
-					<IconButton
-						icon="chevron-right"
-						size={20}
-						iconColor={theme.colors.onSurfaceVariant}
-						onPress={() =>
-							router.push({
-								pathname: "/formulas/[id]",
-								params: { id: item.id, name: item.name },
-							})
-						}
-					/>
-				</View>
-			</Card.Content>
-		</Card>
+			onDelete={() => confirmDeleteFormula(item)}
+		/>
 	);
 
 	return (
@@ -188,11 +242,13 @@ export default function FormulasScreen() {
 						onPress={toggleTheme}
 					/>
 					<Appbar.Content title="Fórmulas" titleStyle={styles.appBarTitle} />
-					<Appbar.Action 
-						icon={refreshing ? "loading" : "refresh"} 
-						onPress={reloadData}
-						disabled={refreshing}
-					/>
+					{refreshing ? (
+						<View style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}>
+							<PaperActivityIndicator animating size={20} />
+						</View>
+					) : (
+						<Appbar.Action icon="refresh" onPress={reloadData} />
+					)}
 				</Appbar.Header>
 			</Animated.View>
 
