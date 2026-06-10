@@ -13,7 +13,7 @@ import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import type { RubberColor } from "@/types/colors";
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
-import * as SplashScreen from "expo-splash-screen";
+import { useSplashDone } from "@/components/AnimatedSplash";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	FlatList,
@@ -56,6 +56,7 @@ export default function HomeScreen() {
 	const [dialogVisible, setDialogVisible] = useState(false);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [colorToDelete, setColorToDelete] = useState<RubberColor | null>(null);
+	const splashDone = useSplashDone();
 
 	// Animaciones de entrada
 	const {
@@ -126,16 +127,14 @@ export default function HomeScreen() {
 		}
 	}, []);
 
-	// Ocultar el splash y arrancar las animaciones en cuanto la pantalla está
-	// lista, sin esperar a la API: mientras cargan los datos se muestran los
-	// skeletons. Esperar a la API bloqueaba el arranque visible de la app
-	// cuando el backend tenía un cold start lento.
+	// Arrancar las animaciones de entrada recién cuando el splash animado
+	// terminó, para que no queden tapadas por el overlay. Mientras cargan los
+	// datos se muestran los skeletons.
 	useEffect(() => {
-		if (!animationsStarted) {
-			SplashScreen.hideAsync();
+		if (splashDone && !animationsStarted) {
 			startEntranceAnimation();
 		}
-	}, [animationsStarted, startEntranceAnimation]);
+	}, [splashDone, animationsStarted, startEntranceAnimation]);
 
 	// Reload data when screen gets focus
 	useFocusEffect(

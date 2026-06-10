@@ -7,12 +7,13 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
 import "react-native-reanimated";
 import Toast from 'react-native-toast-message';
 import { PaperProvider } from "react-native-paper";
 import { MD3LightThemeCustom, MD3DarkThemeCustom } from "@/theme/md3-theme";
 import { createToastConfig } from "@/components/ToastConfig";
+import { AnimatedSplash, SplashDoneProvider } from "@/components/AnimatedSplash";
 import { ThemeProvider as CustomThemeProvider, useTheme } from "@/contexts/ThemeContext";
 // import { cargarFormulas } from "@/data/formulas";
 
@@ -63,12 +64,7 @@ export default function RootLayout() {
 	const [loaded] = useFonts({
 		SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
 	});
-
-	useEffect(() => {
-		if (loaded) {
-			// SplashScreen.hideAsync(); // Lo moveremos a la pantalla principal
-		}
-	}, [loaded]);
+	const [splashDone, setSplashDone] = useState(false);
 
 	if (!loaded) {
 		return null;
@@ -76,7 +72,10 @@ export default function RootLayout() {
 
 	return (
 		<CustomThemeProvider>
-			<RootLayoutContent />
+			<SplashDoneProvider value={splashDone}>
+				<RootLayoutContent />
+			</SplashDoneProvider>
+			{!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
 		</CustomThemeProvider>
 	);
 }
