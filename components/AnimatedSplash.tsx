@@ -39,9 +39,11 @@ function Grain({ index }: { index: number }) {
 	const progress = useSharedValue(0);
 
 	const size = 5 + rand(index, 1) * 6;
-	// Caen sobre el ancho de la imagen (centrada), no sobre toda la pantalla.
-	const startX = width / 2 + (rand(index, 2) - 0.5) * IMAGE_SIZE * 0.7;
-	const drift = (rand(index, 3) - 0.5) * 30;
+	// Nacen de un chorro estrecho arriba (como si los vertieran) y se abren
+	// en abanico hasta cubrir el ancho de la boca de la cubeta al aterrizar.
+	const lateral = rand(index, 2) - 0.5;
+	const startX = width / 2 + lateral * IMAGE_SIZE * 0.12;
+	const endX = width / 2 + lateral * IMAGE_SIZE * 0.75 + (rand(index, 3) - 0.5) * 12;
 	// Los granos "aterrizan" en la boca de la cubeta (centro de la pantalla).
 	const endY = height / 2 + (rand(index, 4) - 0.7) * IMAGE_SIZE * 0.25;
 	const rotation = (rand(index, 5) - 0.5) * 360;
@@ -59,7 +61,15 @@ function Grain({ index }: { index: number }) {
 	const style = useAnimatedStyle(() => ({
 		opacity: interpolate(progress.value, [0, 0.08, 0.82, 1], [0, 1, 1, 0]),
 		transform: [
-			{ translateX: startX + interpolate(progress.value, [0, 1], [0, drift]) },
+			// La apertura lateral usa una curva más lenta al inicio para que el
+			// chorro se mantenga estrecho arriba y se abra cerca de la cubeta.
+			{
+				translateX: interpolate(
+					progress.value ** 1.6,
+					[0, 1],
+					[startX, endX],
+				),
+			},
 			{ translateY: interpolate(progress.value, [0, 1], [-40, endY]) },
 			{ rotate: `${interpolate(progress.value, [0, 1], [0, rotation])}deg` },
 		],
