@@ -1,19 +1,22 @@
-import { addIngredient, getFormulaById, updateFormula } from "@/api/formulasApi";
+import { getFormulaById, updateFormula } from "@/api/formulasApi";
+import AnimatedListItem from "@/components/AnimatedListItem";
+import SkeletonList from "@/components/SkeletonCard";
 import { Spacing } from "@/constants/Spacing";
+import { useEntranceAnimation } from "@/hooks/useEntranceAnimation";
 import type { Formula, Ingrediente } from "@/types/formulas";
 import { showError, showSuccess } from "@/utils/toast";
+import { calculateTotalWeight } from "@/utils/weight";
 import * as FileSystem from "expo-file-system";
+import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-	ScrollView,
 	StyleSheet,
 	View,
 } from "react-native";
 import {
-	ActivityIndicator,
 	Appbar,
 	Button,
 	Card,
@@ -27,6 +30,11 @@ import {
 	TextInput,
 	useTheme,
 } from "react-native-paper";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withSpring,
+} from "react-native-reanimated";
 
 
 // Función para capitalizar la primera letra de un string
@@ -53,28 +61,76 @@ function sanitizeFilename(text: string) {
 		.replace(/\s+/g, "-");
 }
 
-// Función para convertir cantidades a kilos
-function convertToKilos(cantidad: number, unidad: string): number {
-	switch (unidad.toLowerCase()) {
-		case 'kg':
-			return cantidad;
-		case 'gr':
-		case 'g':
-			return cantidad / 1000;
-		case 'l':
-			// Asumimos densidad del agua (1 L = 1 kg) para líquidos
-			return cantidad;
-		default:
-			return cantidad / 1000; // Por defecto asumimos gramos
-	}
-}
+// Tarjeta de ingrediente con entrada escalonada y feedback táctil (scale).
+function IngredientCard({
+	ingrediente,
+	index,
+	onPress,
+}: {
+	ingrediente: Ingrediente;
+	index: number;
+	onPress: () => void;
+}) {
+	const theme = useTheme();
+	const scale = useSharedValue(1);
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+	}));
+	const pressConfig = { damping: 18, stiffness: 260 } as const;
 
-// Función para calcular el peso total en kilos
-function calculateTotalWeight(ingredientes: Ingrediente[]): number {
-	return ingredientes.reduce((total, ingrediente) => {
-		const weightInKilos = convertToKilos(ingrediente.cantidad, ingrediente.unidad);
-		return total + weightInKilos;
-	}, 0);
+	const name = ingrediente.nombre || "Nombre no disponible";
+	const quantity =
+		ingrediente.cantidad !== null && ingrediente.cantidad !== undefined
+			? ingrediente.cantidad
+			: "-";
+	const unit = ingrediente.unidad || "";
+
+	return (
+		<AnimatedListItem index={index}>
+			<Animated.View style={animatedStyle}>
+				<Card
+					style={styles.ingredientsCard}
+					onPress={onPress}
+					mode="elevated"
+					elevation={1}
+					onPressIn={() => {
+						scale.value = withSpring(0.97, pressConfig);
+					}}
+					onPressOut={() => {
+						scale.value = withSpring(1, pressConfig);
+					}}
+				>
+					<Card.Content style={styles.ingredientsContent}>
+						<View style={styles.nameSection}>
+							<Text variant="titleMedium" style={[styles.ingredientsName, { color: theme.colors.onSurface }]}>
+								{capitalizeFirstLetter(name)}
+							</Text>
+						</View>
+						<View style={styles.quantitySection}>
+							<View style={styles.quantityContainer}>
+								<Text variant="titleLarge" style={[styles.quantityNumber, { color: theme.colors.primary }]}>
+									{quantity}
+								</Text>
+								<Text variant="bodyMedium" style={[styles.quantityUnit, { color: theme.colors.onSurfaceVariant }]}>
+									{unit}
+								</Text>
+							</View>
+						</View>
+						<View style={styles.buttonSection}>
+							<IconButton 
+								icon="pencil" 
+								size={20} 
+								iconColor={theme.colors.onSurfaceVariant}
+								mode="contained-tonal"
+								accessibilityLabel={`Editar ${name}`}
+								onPress={onPress}
+							/>
+						</View>
+					</Card.Content>
+				</Card>
+			</Animated.View>
+		</AnimatedListItem>
+	);
 }
 
 export default function FormulaDetailScreen() {
@@ -98,6 +154,18 @@ export default function FormulaDetailScreen() {
 		cantidad: "",
 		unidad: "gr",
 	});
+	// Evita volver al spinner/skeleton (y desmontar el contenido) en recargas
+	// posteriores a la primera carga.
+	const hasLoadedRef = useRef(false);
+
+	// Animaciones de entrada (header, contenido y FAB)
+	const {
+		animationsStarted,
+		start: startEntranceAnimation,
+		headerStyle: animatedHeaderStyle,
+		contentStyle: animatedContentStyle,
+		fabStyle: animatedFabStyle,
+	} = useEntranceAnimation();
 
 	useEffect(() => {
 		if (id && typeof id === 'string') {
@@ -109,13 +177,22 @@ export default function FormulaDetailScreen() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [id]);
 
+	useEffect(() => {
+		if (!animationsStarted) {
+			startEntranceAnimation();
+		}
+	}, [animationsStarted, startEntranceAnimation]);
+
 	const fetchFormula = async () => {
-		setIsLoading(true);
+		if (!hasLoadedRef.current) {
+			setIsLoading(true);
+		}
 		setError(null);
 		try {
 			const fetchedFormula = await getFormulaById(id as string, name);
 			if (fetchedFormula) {
 				setFormula(fetchedFormula);
+				hasLoadedRef.current = true;
 			} else {
 				setError("No se encontró la fórmula.");
 			}
@@ -124,6 +201,35 @@ export default function FormulaDetailScreen() {
 			console.error(err);
 		} finally {
 			setIsLoading(false);
+		}
+	};
+
+	// Persiste una nueva lista de ingredientes con actualización optimista:
+	// se aplica localmente al instante y se revierte si la API falla.
+	const persistIngredients = async (
+		updatedIngredients: Ingrediente[],
+		successTitle: string,
+		successMessage: string,
+		errorMessage: string,
+	) => {
+		if (!formula) return false;
+		const previousFormula = formula;
+		const updatedFormula = { ...formula, ingredientes: updatedIngredients };
+		setFormula(updatedFormula);
+		try {
+			const success = await updateFormula(
+				id as string,
+				updatedFormula,
+				formula.nombreColor,
+			);
+			if (!success) throw new Error("La API rechazó la actualización");
+			showSuccess(successTitle, successMessage);
+			return true;
+		} catch (error) {
+			console.error(errorMessage, error);
+			setFormula(previousFormula);
+			showError("Error", errorMessage);
+			return false;
 		}
 	};
 
@@ -139,27 +245,17 @@ export default function FormulaDetailScreen() {
 		const updatedIngredients = [...(formula.ingredientes || [])];
 		updatedIngredients[selectedIngredientIndex] = editedIngredient;
 
-		try {
-			await updateFormula(
-				id as string,
-				{ ...formula, ingredientes: updatedIngredients },
-				formula.nombreColor,
-			);
-			showSuccess(
-				"Ingrediente actualizado",
-				"El ingrediente se actualizó correctamente",
-			);
-			fetchFormula();
-		} catch (error) {
-			console.error("Error al actualizar ingrediente:", error);
-			showError("Error", "Ocurrió un error al actualizar el ingrediente");
-		} finally {
-			setEditDialogVisible(false);
-			setIsLoading(false);
-		}
+		setEditDialogVisible(false);
+		await persistIngredients(
+			updatedIngredients,
+			"Ingrediente actualizado",
+			"El ingrediente se actualizó correctamente",
+			"Ocurrió un error al actualizar el ingrediente",
+		);
 	};
 
 	const handleConfirmDelete = () => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 		setEditDialogVisible(false);
 		setDeleteDialogVisible(true);
 	};
@@ -167,29 +263,17 @@ export default function FormulaDetailScreen() {
 	const handleDeleteIngredient = async () => {
 		if (selectedIngredientIndex === null || !formula || !id) return;
 
-		setIsLoading(true);
-		try {
-			const updatedIngredients = formula.ingredientes.filter(
-				(_, index) => index !== selectedIngredientIndex
-			);
-			await updateFormula(
-				id as string,
-				{ ...formula, ingredientes: updatedIngredients },
-				formula.nombreColor,
-			);
+		const updatedIngredients = formula.ingredientes.filter(
+			(_, index) => index !== selectedIngredientIndex
+		);
 
-			showSuccess(
-				"Ingrediente eliminado",
-				"El ingrediente se eliminó correctamente",
-			);
-			fetchFormula();
-		} catch (error) {
-			console.error("Error al eliminar ingrediente:", error);
-			showError("Error", "Ocurrió un error al eliminar el ingrediente");
-		} finally {
-			setDeleteDialogVisible(false);
-			setIsLoading(false);
-		}
+		setDeleteDialogVisible(false);
+		await persistIngredients(
+			updatedIngredients,
+			"Ingrediente eliminado",
+			"El ingrediente se eliminó correctamente",
+			"Ocurrió un error al eliminar el ingrediente",
+		);
 	};
 
 	const handleAddIngredient = () => {
@@ -289,48 +373,35 @@ export default function FormulaDetailScreen() {
 	};
 
 	const handleSaveNewIngredient = async () => {
+		if (!formula) return;
 		if (!newIngredient.nombre.trim() || !newIngredient.cantidad.trim()) {
 			showError("Error", "Completa el nombre y la cantidad del ingrediente");
 			return;
 		}
-		setIsLoading(true);
-		try {
-			const ingredienteObj = {
-				nombre: newIngredient.nombre.trim(),
-				cantidad: Number(newIngredient.cantidad),
-				unidad: newIngredient.unidad.trim() || "gr",
-			};
-			const success = await addIngredient(
-				id as string,
-				ingredienteObj,
-				formula?.nombreColor ?? name,
-			);
-			if (success) {
-				showSuccess(
-					"Ingrediente añadido",
-					"El ingrediente se añadió correctamente",
-				);
-				fetchFormula();
-				setAddDialogVisible(false);
-				setNewIngredient({ nombre: "", cantidad: "", unidad: "gr" });
-			} else {
-				showError("Error", "No se pudo añadir el ingrediente");
-			}
-		} catch (error) {
-			console.error("Error al añadir ingrediente:", error);
-			showError("Error", "Ocurrió un error al añadir el ingrediente");
-		} finally {
-			setIsLoading(false);
-		}
+		const ingredienteObj = {
+			nombre: newIngredient.nombre.trim(),
+			cantidad: Number(newIngredient.cantidad),
+			unidad: newIngredient.unidad.trim() || "gr",
+		};
+
+		setAddDialogVisible(false);
+		setNewIngredient({ nombre: "", cantidad: "", unidad: "gr" });
+		await persistIngredients(
+			[...(formula.ingredientes || []), ingredienteObj],
+			"Ingrediente añadido",
+			"El ingrediente se añadió correctamente",
+			"Ocurrió un error al añadir el ingrediente",
+		);
 	};
 
 	if (isLoading) {
 		return (
 			<Surface style={styles.container}>
-				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="large" />
-					<Text style={styles.loadingText}>Cargando fórmula...</Text>
-				</View>
+				<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+					<Appbar.BackAction onPress={() => router.back()} accessibilityLabel="Volver" />
+					<Appbar.Content title={capitalizeFirstLetter(name ?? "")} titleStyle={styles.appBarTitle} />
+				</Appbar.Header>
+				<SkeletonList count={6} />
 			</Surface>
 		);
 	}
@@ -367,14 +438,16 @@ export default function FormulaDetailScreen() {
 
 	return (
 		<Surface style={styles.container}>
-			<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
-				<Appbar.BackAction onPress={() => router.back()} />
-				<Appbar.Content title={capitalizeFirstLetter(formula.nombreColor)} titleStyle={styles.appBarTitle} />
-				<Appbar.Action icon="share-variant" onPress={handleShareFormula} />
-			</Appbar.Header>
+			<Animated.View style={animatedHeaderStyle}>
+				<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+					<Appbar.BackAction onPress={() => router.back()} accessibilityLabel="Volver" />
+					<Appbar.Content title={capitalizeFirstLetter(formula.nombreColor)} titleStyle={styles.appBarTitle} />
+					<Appbar.Action icon="share-variant" onPress={handleShareFormula} accessibilityLabel="Compartir fórmula en PDF" />
+				</Appbar.Header>
+			</Animated.View>
 
-			<ScrollView 
-				style={styles.content}
+			<Animated.ScrollView 
+				style={[styles.content, animatedContentStyle]}
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 			>
@@ -407,49 +480,14 @@ export default function FormulaDetailScreen() {
 				</Card>
 
 				{formula.ingredientes && formula.ingredientes.length > 0 ? (
-					formula.ingredientes.map((ingrediente: Ingrediente, index: number) => {
-						const name = ingrediente.nombre || "Nombre no disponible";
-						const quantity = ingrediente.cantidad !== null && ingrediente.cantidad !== undefined
-							? ingrediente.cantidad
-							: "-";
-						const unit = ingrediente.unidad || "";
-
-						return (
-							<Card
-								key={`${formula?.id || "formula"}-${index}`}
-								style={styles.ingredientsCard}
-								onPress={() => handleIngredientPress(ingrediente, index)}
-								mode="elevated"
-								elevation={1}
-							>
-								<Card.Content style={styles.ingredientsContent}>
-									<View style={styles.nameSection}>
-										<Text variant="titleMedium" style={[styles.ingredientsName, { color: theme.colors.onSurface }]}>
-											{capitalizeFirstLetter(name)}
-										</Text>
-									</View>
-									<View style={styles.quantitySection}>
-										<View style={styles.quantityContainer}>
-											<Text variant="titleLarge" style={[styles.quantityNumber, { color: theme.colors.primary }]}>
-												{quantity}
-											</Text>
-											<Text variant="bodyMedium" style={[styles.quantityUnit, { color: theme.colors.onSurfaceVariant }]}>
-												{unit}
-											</Text>
-										</View>
-									</View>
-									<View style={styles.buttonSection}>
-										<IconButton 
-											icon="pencil" 
-											size={20} 
-											iconColor={theme.colors.onSurfaceVariant}
-											mode="contained-tonal"
-										/>
-									</View>
-								</Card.Content>
-							</Card>
-						);
-					})
+					formula.ingredientes.map((ingrediente: Ingrediente, index: number) => (
+						<IngredientCard
+							key={`${formula?.id || "formula"}-${index}`}
+							ingrediente={ingrediente}
+							index={index}
+							onPress={() => handleIngredientPress(ingrediente, index)}
+						/>
+					))
 				) : (
 					<Card style={styles.emptyCard}>
 						<Card.Content style={styles.emptyContent}>
@@ -462,14 +500,16 @@ export default function FormulaDetailScreen() {
 						</Card.Content>
 					</Card>
 				)}
-			</ScrollView>
+			</Animated.ScrollView>
 
 			{/* FAB para agregar ingrediente */}
-			<FAB
-				icon="plus"
-				style={styles.fab}
-				onPress={handleAddIngredient}
-			/>
+			<Animated.View style={[styles.fabContainer, animatedFabStyle]}>
+				<FAB
+					icon="plus"
+					onPress={handleAddIngredient}
+					accessibilityLabel="Agregar ingrediente"
+				/>
+			</Animated.View>
 
 			{/* Dialog para editar ingrediente */}
 			<Portal>
@@ -736,7 +776,7 @@ const styles = StyleSheet.create({
 	emptySubtitle: {
 		textAlign: 'center',
 	},
-	fab: {
+	fabContainer: {
 		position: "absolute",
 		right: Spacing.md,
 		bottom: Spacing.md,

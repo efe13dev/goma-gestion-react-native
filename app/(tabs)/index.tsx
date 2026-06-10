@@ -6,6 +6,8 @@ import {
 } from "@/api/stockApi";
 import AnimatedQuantity from "@/components/AnimatedQuantity";
 import AnimatedListItem from "@/components/AnimatedListItem";
+import SkeletonList from "@/components/SkeletonCard";
+import * as Haptics from "expo-haptics";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
 import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
 import type { RubberColor } from "@/types/colors";
@@ -59,7 +61,6 @@ export default function HomeScreen() {
 	const {
 		animationsStarted,
 		start: startEntranceAnimation,
-		reset: resetEntranceAnimation,
 		headerStyle: animatedHeaderStyle,
 		contentStyle: animatedContentStyle,
 		fabStyle: animatedFabStyle,
@@ -75,6 +76,13 @@ export default function HomeScreen() {
 	// Indica si ya se cargaron datos al menos una vez. Evita mostrar el spinner
 	// a pantalla completa (y desmontar la lista) en recargas posteriores.
 	const hasLoadedRef = useRef(false);
+	// Espejo del inventario para leer el valor más reciente fuera del ciclo de
+	// render (taps rápidos y debounce) sin efectos secundarios en updaters.
+	const inventoryRef = useRef<RubberColor[]>([]);
+
+	useEffect(() => {
+		inventoryRef.current = inventory;
+	}, [inventory]);
 
 	useEffect(() => {
 		return () => {
@@ -118,22 +126,16 @@ export default function HomeScreen() {
 		}
 	}, []);
 
-	// Iniciar animaciones cuando los datos estén cargados y el modal esté cerrado
+	// Ocultar el splash y arrancar las animaciones en cuanto la pantalla está
+	// lista, sin esperar a la API: mientras cargan los datos se muestran los
+	// skeletons. Esperar a la API bloqueaba el arranque visible de la app
+	// cuando el backend tenía un cold start lento.
 	useEffect(() => {
-		if (!isLoading && !dialogVisible && !deleteDialogVisible) {
-			// Solo ocultar splash screen y ejecutar animaciones si no se han ejecutado antes
-			if (!animationsStarted) {
-				SplashScreen.hideAsync(); // Ocultar splash screen aquí
-				startEntranceAnimation();
-			}
+		if (!animationsStarted) {
+			SplashScreen.hideAsync();
+			startEntranceAnimation();
 		}
-	}, [
-		isLoading,
-		dialogVisible,
-		deleteDialogVisible,
-		animationsStarted,
-		startEntranceAnimation,
-	]);
+	}, [animationsStarted, startEntranceAnimation]);
 
 	// Reload data when screen gets focus
 	useFocusEffect(
@@ -145,52 +147,44 @@ export default function HomeScreen() {
 	);
 
 	const adjustQuantity = useCallback(
-		async (id: string, increment: number) => {
-			try {
-				let updatedColor: RubberColor | null = null;
+		(id: string, increment: number) => {
+			const current = inventoryRef.current.find((color) => color.id === id);
+			if (!current) return;
 
-				setInventory((prev) => {
-					const current = prev.find((color) => color.id === id);
-					if (!current) return prev;
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-					updatedColor = {
-						...current,
-						quantity: Math.max(0, current.quantity + increment),
-					};
+			const updatedColor: RubberColor = {
+				...current,
+				quantity: Math.max(0, current.quantity + increment),
+			};
 
-					return prev.map((color) => (color.id === id ? updatedColor! : color));
-				});
+			// Actualizar el espejo de forma síncrona para que taps rápidos
+			// consecutivos lean siempre el valor más reciente.
+			inventoryRef.current = inventoryRef.current.map((color) =>
+				color.id === id ? updatedColor : color,
+			);
+			setInventory(inventoryRef.current);
 
-				if (!updatedColor) return;
-				pendingQuantityUpdates.current[id] = updatedColor;
-				const existingTimer = quantityDebounceTimers.current[id];
-				if (existingTimer) clearTimeout(existingTimer);
+			pendingQuantityUpdates.current[id] = updatedColor;
+			const existingTimer = quantityDebounceTimers.current[id];
+			if (existingTimer) clearTimeout(existingTimer);
 
-				quantityDebounceTimers.current[id] = setTimeout(async () => {
-					const colorToSend = pendingQuantityUpdates.current[id];
-					pendingQuantityUpdates.current[id] = undefined;
-					quantityDebounceTimers.current[id] = undefined;
-					if (!colorToSend) return;
-					try {
-						await updateColor(colorToSend);
-					} catch (err) {
-						showError(
-							"Error",
-							"No se pudo actualizar el inventario en la API. Intente nuevamente.",
-						);
-						loadData();
-						console.error("Error adjusting quantity:", err);
-					}
-				}, quantityDebounceMs);
-			} catch (err) {
-				showError(
-					"Error",
-					"No se pudo actualizar el inventario en la API. Intente nuevamente.",
-				);
-				// Reload data to ensure consistency
-				loadData();
-				console.error("Error adjusting quantity:", err);
-			}
+			quantityDebounceTimers.current[id] = setTimeout(async () => {
+				const colorToSend = pendingQuantityUpdates.current[id];
+				pendingQuantityUpdates.current[id] = undefined;
+				quantityDebounceTimers.current[id] = undefined;
+				if (!colorToSend) return;
+				try {
+					await updateColor(colorToSend);
+				} catch (err) {
+					showError(
+						"Error",
+						"No se pudo actualizar el inventario en la API. Intente nuevamente.",
+					);
+					loadData();
+					console.error("Error adjusting quantity:", err);
+				}
+			}, quantityDebounceMs);
 		},
 		[loadData],
 	);
@@ -225,51 +219,52 @@ export default function HomeScreen() {
 			}
 		}
 
+		const newColor: RubberColor = {
+			id: newColorName.toLowerCase().replace(/\s+/g, "-"),
+			name: newColorName,
+			quantity,
+		};
+
+		// Actualización optimista: añadir localmente y cerrar el diálogo sin
+		// desmontar la lista; si la API falla, se revierte.
+		setInventory((prev) => [...prev, newColor]);
+		setNewColorName("");
+		setNewColorQuantity("");
+		setDialogVisible(false);
+
 		try {
-			setIsLoading(true);
-			const newColor: RubberColor = {
-				id: newColorName.toLowerCase().replace(/\s+/g, "-"),
-				name: newColorName,
-				quantity,
-			};
 			await addColor(newColor);
-			// Clear the form
-			setNewColorName("");
-			setNewColorQuantity("");
-			setDialogVisible(false);
-			// Reload data
-			await loadData();
 			showSuccess("¡Añadido!", `Color ${newColorName} agregado`);
 		} catch (err) {
+			setInventory((prev) => prev.filter((color) => color.id !== newColor.id));
 			showError(
 				"Error",
 				"No se pudo agregar el color. Es posible que ya exista o haya un problema con la API.",
 			);
 			console.error("Error adding color:", err);
-		} finally {
-			setIsLoading(false);
 		}
-	}, [newColorName, newColorQuantity, inventory, loadData]);
+	}, [newColorName, newColorQuantity, inventory]);
 
 	const handleDeleteColor = useCallback(
 		async (name: string) => {
+			// Actualización optimista: quitar localmente y revertir si falla.
+			const previousInventory = inventoryRef.current;
+			setInventory((prev) => prev.filter((color) => color.name !== name));
 			try {
-				setIsLoading(true);
 				await apiDeleteColor(name);
-				await loadData();
 				showSuccess("¡Eliminado!", `Color ${name} eliminado`);
 			} catch (err) {
+				setInventory(previousInventory);
 				showError("Error", "No se pudo eliminar el color. Intente nuevamente.");
 				console.error("Error deleting color:", err);
-			} finally {
-				setIsLoading(false);
 			}
 		},
-		[loadData],
+		[],
 	);
 
 	const confirmDeleteColor = useCallback(
 		(color: RubberColor) => {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 			setColorToDelete(color);
 			setDeleteDialogVisible(true);
 		},
@@ -284,15 +279,13 @@ export default function HomeScreen() {
 		}
 	};
 
+	// Cerrar el diálogo sin tocar las animaciones de entrada: reiniciarlas
+	// aquí hacía que toda la pantalla "reapareciera" al cancelar el modal.
 	const closeDialog = useCallback(() => {
 		setDialogVisible(false);
 		setNewColorName("");
 		setNewColorQuantity("");
-		// Reiniciar animaciones si no hay otros modales abiertos
-		if (!deleteDialogVisible) {
-			resetEntranceAnimation();
-		}
-	}, [deleteDialogVisible, resetEntranceAnimation]);
+	}, []);
 
 	const reloadData = () => {
 		loadData(true);
@@ -322,23 +315,30 @@ export default function HomeScreen() {
 									size={24}
 									onPress={() => adjustQuantity(item.id, -1)}
 									mode="contained-tonal"
+									accessibilityLabel={`Restar una unidad de ${item.name}`}
 								/>
 								<AnimatedQuantity 
 									quantity={item.quantity} 
 									variant="headlineSmall"
-									style={{ marginHorizontal: 8, fontWeight: 'bold' }}
+									style={{
+										marginHorizontal: 8,
+										fontWeight: 'bold',
+										color: item.quantity === 0 ? theme.colors.error : theme.colors.onSurface,
+									}}
 								/>
 								<IconButton
 									icon="plus-circle"
 									size={24}
 									onPress={() => adjustQuantity(item.id, 1)}
 									mode="contained-tonal"
+									accessibilityLabel={`Sumar una unidad de ${item.name}`}
 								/>
 								<IconButton
 									icon="delete"
 									size={24}
 									onPress={() => confirmDeleteColor(item)}
 									iconColor={theme.colors.error}
+									accessibilityLabel={`Eliminar ${item.name}`}
 								/>
 							</View>
 						</View>
@@ -358,6 +358,7 @@ export default function HomeScreen() {
 					<Appbar.Action 
 						icon={themeMode === 'auto' ? 'theme-light-dark' : themeMode === 'dark' ? 'weather-night' : 'white-balance-sunny'} 
 						onPress={toggleTheme}
+						accessibilityLabel="Cambiar tema"
 					/>
 					<Appbar.Content title="Stock" titleStyle={styles.appBarTitle} />
 					{refreshing ? (
@@ -365,7 +366,7 @@ export default function HomeScreen() {
 							<PaperActivityIndicator animating size={20} />
 						</View>
 					) : (
-						<Appbar.Action icon="refresh" onPress={reloadData} />
+						<Appbar.Action icon="refresh" onPress={reloadData} accessibilityLabel="Recargar inventario" />
 					)}
 					</Appbar.Header>
 				</Animated.View>
@@ -397,12 +398,7 @@ export default function HomeScreen() {
 						</Card>
 					</ScrollView>
 				) : isLoading ? (
-					<View style={styles.loadingContainer}>
-						<PaperActivityIndicator animating={true} size="large" />
-						<Text variant="bodyLarge" style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
-							Cargando inventario...
-						</Text>
-					</View>
+					<SkeletonList count={6} />
 				) : (
 					<Animated.View style={[{ flex: 1 }, animatedContentStyle]}>
 						<FlatList
@@ -458,12 +454,13 @@ export default function HomeScreen() {
 						icon="plus"
 						style={styles.fab}
 						onPress={() => setDialogVisible(true)}
+						accessibilityLabel="Agregar color"
 					/>
 				</Animated.View>
 
 				{/* Dialog para agregar color */}
 				<Portal>
-					<Dialog visible={dialogVisible} onDismiss={() => setDialogVisible(false)}>
+					<Dialog visible={dialogVisible} onDismiss={closeDialog}>
 						<Dialog.Title>Agregar Nuevo Color</Dialog.Title>
 						<Dialog.Content>
 							<TextInput
@@ -486,10 +483,7 @@ export default function HomeScreen() {
 							<Button onPress={closeDialog}>
 								Cancelar
 							</Button>
-							<Button mode="contained" onPress={() => {
-								handleAddColor();
-								setDialogVisible(false);
-							}}>
+							<Button mode="contained" onPress={handleAddColor}>
 								Agregar
 							</Button>
 						</Dialog.Actions>

@@ -1,5 +1,5 @@
 import type { RubberColor } from '@/types/colors';
-import { API_URL, STOCK_ENDPOINT } from './config';
+import { API_URL, STOCK_ENDPOINT, fetchWithTimeout } from './config';
 
 // Interface for API data
 interface ColorAPI {
@@ -23,8 +23,8 @@ const mapLocalToApi = (localColor: RubberColor): ColorAPI => ({
 // Get all stock
 export const getStock = async (): Promise<RubberColor[]> => {
   try {
-    console.log(`Getting stock from: ${API_URL}${STOCK_ENDPOINT}`);
-    const response = await fetch(`${API_URL}${STOCK_ENDPOINT}`);
+    if (__DEV__) console.log(`Getting stock from: ${API_URL}${STOCK_ENDPOINT}`);
+    const response = await fetchWithTimeout(`${API_URL}${STOCK_ENDPOINT}`);
     
     if (!response.ok) {
       throw new Error(`Error getting stock: ${response.status}`);

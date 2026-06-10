@@ -15,6 +15,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeMode] = useState<ThemeMode>('auto');
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light');
+  // Evita sobrescribir el tema guardado con el valor por defecto ('auto')
+  // antes de que termine la carga inicial desde AsyncStorage.
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Cargar el tema guardado al iniciar
   useEffect(() => {
@@ -26,13 +29,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error cargando el tema:', error);
+      } finally {
+        setIsLoaded(true);
       }
     };
     loadTheme();
   }, []);
 
-  // Guardar el tema cuando cambia
+  // Guardar el tema cuando cambia (solo tras la carga inicial)
   useEffect(() => {
+    if (!isLoaded) return;
     const saveTheme = async () => {
       try {
         await AsyncStorage.setItem('themeMode', themeMode);
@@ -41,7 +47,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     };
     saveTheme();
-  }, [themeMode]);
+  }, [themeMode, isLoaded]);
 
   // Detectar el tema del sistema
   useEffect(() => {

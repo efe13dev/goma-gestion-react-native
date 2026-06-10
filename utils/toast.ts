@@ -15,6 +15,8 @@ export const showToast = (
   message: string,
   duration = 3000
 ) => {
+  // Los estilos de texto y colores se definen de forma centralizada y
+  // tematizada en components/ToastConfig.tsx.
   Toast.show({
     type,
     text1: title,
@@ -22,13 +24,6 @@ export const showToast = (
     visibilityTime: duration,
     position: 'bottom',
     bottomOffset: 60,
-    text1Style: {
-      fontSize: 20,
-      fontWeight: 'bold'
-    },
-    text2Style: {
-      fontSize: 18
-    }
   });
 };
 
@@ -85,12 +80,5 @@ export const showConfirmation = (
     visibilityTime: 4000,
     autoHide: true,
     onPress: onConfirm,
-    text1Style: {
-      fontSize: 20,
-      fontWeight: 'bold'
-    },
-    text2Style: {
-      fontSize: 18
-    }
   });
 };

@@ -1,5 +1,5 @@
 import type { Formula, Ingrediente } from "@/types/formulas";
-import { API_URL, FORMULAS_ENDPOINT } from "./config";
+import { API_URL, FORMULAS_ENDPOINT, fetchWithTimeout } from "./config";
 
 // Interface para API data según la documentación
 interface FormulaAPI {
@@ -67,65 +67,41 @@ interface FormulaName {
 	name: string;
 }
 
-// Get formula names only (optimized for listing)
+// Get formula names only (optimized for listing).
+// Lanza un error en fallos de red/API para que la UI pueda mostrar el estado
+// de error real en lugar de una lista vacía.
 export const getFormulaNames = async (): Promise<FormulaName[]> => {
-	try {
-		const response = await fetch(`${API_URL}${FORMULAS_ENDPOINT}/names`);
-		if (!response.ok) {
-			console.error(`Error en la respuesta de la API: ${response.status}`);
-			return [];
-		}
-
-		let data: unknown;
-		try {
-			data = await response.json();
-		} catch (parseError) {
-			console.error("Error al parsear la respuesta JSON:", parseError);
-			return [];
-		}
-
-		if (!Array.isArray(data)) {
-			console.log("La API no devolvió un array:", data);
-			return [];
-		}
-
-		return data.map((item: any) => ({
-			id: item.name.toLowerCase().replace(/\s+/g, "-"),
-			name: item.name,
-		}));
-	} catch (error) {
-		console.error("Error al obtener los nombres de fórmulas:", error);
-		return [];
+	const response = await fetchWithTimeout(`${API_URL}${FORMULAS_ENDPOINT}/names`);
+	if (!response.ok) {
+		throw new Error(`Error en la respuesta de la API: ${response.status}`);
 	}
+
+	const data: unknown = await response.json();
+
+	if (!Array.isArray(data)) {
+		throw new Error("La API no devolvió un array de nombres de fórmulas");
+	}
+
+	return data.map((item: any) => ({
+		id: item.name.toLowerCase().replace(/\s+/g, "-"),
+		name: item.name,
+	}));
 };
 
-// Get all formulas
+// Get all formulas. Lanza un error en fallos de red/API.
 export const getFormulas = async (): Promise<Formula[]> => {
-	try {
-		const response = await fetch(`${API_URL}${FORMULAS_ENDPOINT}`);
-		if (!response.ok) {
-			console.error(`Error en la respuesta de la API: ${response.status}`);
-			return [];
-		}
-
-		let data: unknown;
-		try {
-			data = await response.json();
-		} catch (parseError) {
-			console.error("Error al parsear la respuesta JSON:", parseError);
-			return [];
-		}
-
-		if (!Array.isArray(data)) {
-			console.log("La API no devolvió un array:", data);
-			return [];
-		}
-
-		return data.map(mapApiToLocal);
-	} catch (error) {
-		console.error("Error al obtener las fórmulas:", error);
-		return [];
+	const response = await fetchWithTimeout(`${API_URL}${FORMULAS_ENDPOINT}`);
+	if (!response.ok) {
+		throw new Error(`Error en la respuesta de la API: ${response.status}`);
 	}
+
+	const data: unknown = await response.json();
+
+	if (!Array.isArray(data)) {
+		throw new Error("La API no devolvió un array de fórmulas");
+	}
+
+	return data.map(mapApiToLocal);
 };
 
 // Resuelve el nombre real de la fórmula para la API.
@@ -137,45 +113,33 @@ const resolveFormulaName = (id: string, name?: string): string => {
 	return id.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 };
 
-// Get formula by ID (o por nombre real si se proporciona)
+// Get formula by ID (o por nombre real si se proporciona).
+// Devuelve null solo si la fórmula no existe (404); en cualquier otro fallo
+// lanza un error para que la UI distinga "no encontrada" de "error de red".
 export const getFormulaById = async (
 	id: string,
 	name?: string,
 ): Promise<Formula | null> => {
-	try {
-		const resolvedName = resolveFormulaName(id, name);
+	const resolvedName = resolveFormulaName(id, name);
 
-		const response = await fetch(
-			`${API_URL}${FORMULAS_ENDPOINT}/${encodeURIComponent(resolvedName)}`,
-		);
+	const response = await fetchWithTimeout(
+		`${API_URL}${FORMULAS_ENDPOINT}/${encodeURIComponent(resolvedName)}`,
+	);
 
-		if (!response.ok) {
-			if (response.status === 404) {
-				console.log(`Fórmula ${resolvedName} no encontrada`);
-				return null;
-			}
-			console.error(`Error en la respuesta de la API: ${response.status}`);
+	if (!response.ok) {
+		if (response.status === 404) {
 			return null;
 		}
-
-		let data: unknown;
-		try {
-			data = await response.json();
-		} catch (parseError) {
-			console.error("Error al parsear la respuesta JSON:", parseError);
-			return null;
-		}
-
-		if (!data || typeof data !== "object") {
-			console.log("La API devolvió un formato inesperado:", data);
-			return null;
-		}
-
-		return mapApiToLocal(data as FormulaAPI);
-	} catch (error) {
-		console.error(`Error al obtener la fórmula ${id}:`, error);
-		return null;
+		throw new Error(`Error en la respuesta de la API: ${response.status}`);
 	}
+
+	const data: unknown = await response.json();
+
+	if (!data || typeof data !== "object") {
+		throw new Error("La API devolvió un formato inesperado");
+	}
+
+	return mapApiToLocal(data as FormulaAPI);
 };
 
 // Add a new formula

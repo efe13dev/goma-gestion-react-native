@@ -1,5 +1,7 @@
 import { deleteFormula, getFormulaNames } from "@/api/formulasApi";
+import SkeletonList from "@/components/SkeletonCard";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
+import * as Haptics from "expo-haptics";
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -97,6 +99,7 @@ function FormulaCard({
 								size={20}
 								iconColor={chevronColor}
 								onPress={onOpen}
+								accessibilityLabel={`Abrir fórmula ${item.name}`}
 							/>
 						</View>
 					</Card.Content>
@@ -115,7 +118,6 @@ export default function FormulasScreen() {
 	const [refreshing, setRefreshing] = useState(false);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [, setIsLoading] = useState(false);
 	const [formulaToDelete, setFormulaToDelete] = useState<FormulaListItem | null>(null);
 	// Evita mostrar el spinner a pantalla completa (y desmontar la lista) en
 	// recargas posteriores a la primera carga.
@@ -161,24 +163,26 @@ export default function FormulasScreen() {
 	}, []);
 
 	const handleDeleteFormula = async (id: string, nombreColor: string) => {
+		// Actualización optimista: quitar localmente y revertir si la API falla.
+		const previousFormulas = formulas;
+		setFormulas((prev) => prev.filter((formula) => formula.id !== id));
 		try {
-			setIsLoading(true);
-			const success = await deleteFormula(id);
+			const success = await deleteFormula(id, nombreColor);
 			if (success) {
 				showSuccess("¡Eliminada!", `Fórmula ${nombreColor} eliminada.`);
-				await loadFormulas();
 			} else {
+				setFormulas(previousFormulas);
 				showError("Error", "No se pudo eliminar la fórmula.");
 			}
 		} catch (err) {
+			setFormulas(previousFormulas);
 			console.error("Error deleting formula:", err);
 			showError("Error", "Ocurrió un error al intentar eliminar la fórmula.");
-		} finally {
-			setIsLoading(false);
 		}
 	};
 
 	const confirmDeleteFormula = useCallback((formula: FormulaListItem) => {
+		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 		setFormulaToDelete(formula);
 		setDeleteDialogVisible(true);
 	}, []);
@@ -203,12 +207,12 @@ export default function FormulasScreen() {
 		}, [loadFormulas]),
 	);
 
-	// Iniciar animaciones cuando los datos estén cargados
+	// Iniciar animaciones al montar, sin esperar a la API (se muestran skeletons)
 	useEffect(() => {
-		if (!loading && !animationsStarted) {
+		if (!animationsStarted) {
 			startEntranceAnimation();
 		}
-	}, [loading, animationsStarted, startEntranceAnimation]);
+	}, [animationsStarted, startEntranceAnimation]);
 
 	const renderFormulaItem = ({
 		item,
@@ -240,6 +244,7 @@ export default function FormulasScreen() {
 					<Appbar.Action 
 						icon={themeMode === 'auto' ? 'theme-light-dark' : themeMode === 'dark' ? 'weather-night' : 'white-balance-sunny'} 
 						onPress={toggleTheme}
+						accessibilityLabel="Cambiar tema"
 					/>
 					<Appbar.Content title="Fórmulas" titleStyle={styles.appBarTitle} />
 					{refreshing ? (
@@ -247,7 +252,7 @@ export default function FormulasScreen() {
 							<PaperActivityIndicator animating size={20} />
 						</View>
 					) : (
-						<Appbar.Action icon="refresh" onPress={reloadData} />
+						<Appbar.Action icon="refresh" onPress={reloadData} accessibilityLabel="Recargar fórmulas" />
 					)}
 				</Appbar.Header>
 			</Animated.View>
@@ -279,12 +284,7 @@ export default function FormulasScreen() {
 					</Card>
 				</ScrollView>
 			) : loading ? (
-				<View style={styles.loadingContainer}>
-					<PaperActivityIndicator animating={true} size="large" />
-					<Text variant="bodyLarge" style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
-						Cargando fórmulas...
-					</Text>
-				</View>
+				<SkeletonList count={6} />
 			) : (
 				<Animated.View style={[{ flex: 1 }, animatedContentStyle]}>
 					<FlatList
@@ -339,6 +339,7 @@ export default function FormulasScreen() {
 					icon="plus"
 					style={styles.fab}
 					onPress={() => router.push("/formulas/nueva-formula")}
+					accessibilityLabel="Crear nueva fórmula"
 				/>
 			</Animated.View>
 
