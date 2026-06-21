@@ -181,11 +181,11 @@ export default function FormulasScreen() {
 		}
 	};
 
-	const confirmDeleteFormula = useCallback((formula: FormulaListItem) => {
+	const confirmDeleteFormula = (formula: FormulaListItem) => {
 		Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 		setFormulaToDelete(formula);
 		setDeleteDialogVisible(true);
-	}, []);
+	};
 
 	const handleConfirmDelete = async () => {
 		if (formulaToDelete) {

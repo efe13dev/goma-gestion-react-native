@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
+	runOnJS,
 	useAnimatedStyle,
 	useSharedValue,
 	withDelay,
@@ -12,7 +13,15 @@ import {
  * (header, contenido y FAB). Cada pantalla decide cuándo llamar a `start` y
  * `reset` según su propio estado de carga / modales.
  */
-export function useEntranceAnimation() {
+export function useEntranceAnimation(onContentReady?: () => void) {
+	const cbRef = useRef(onContentReady);
+	cbRef.current = onContentReady;
+
+	// ponytail: función estable que lee el ref desde JS. El worklet captura
+	// esta función (no el ref), evitando el warning de Reanimated por
+	// mutar un objeto ya compartido con el hilo de UI.
+	const fireReady = useCallback(() => cbRef.current?.(), []);
+
 	const headerOpacity = useSharedValue(0);
 	const headerTranslateY = useSharedValue(-50);
 	const contentOpacity = useSharedValue(0);
@@ -26,7 +35,12 @@ export function useEntranceAnimation() {
 		headerOpacity.value = withTiming(1, { duration: 300 });
 		headerTranslateY.value = withSpring(0, { damping: 15, stiffness: 150 });
 		// Contenido con delay
-		contentOpacity.value = withDelay(100, withTiming(1, { duration: 300 }));
+		contentOpacity.value = withDelay(
+			100,
+			withTiming(1, { duration: 300 }, (finished) => {
+				if (finished) runOnJS(fireReady)();
+			}),
+		);
 		contentTranslateY.value = withDelay(
 			100,
 			withSpring(0, { damping: 15, stiffness: 120 }),
@@ -42,6 +56,7 @@ export function useEntranceAnimation() {
 		contentOpacity,
 		contentTranslateY,
 		fabScale,
+		fireReady,
 	]);
 
 	const reset = useCallback(() => {

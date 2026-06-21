@@ -1,5 +1,5 @@
 import type { RubberColor } from '@/types/colors';
-import { API_URL, STOCK_ENDPOINT, fetchWithTimeout } from './config';
+import { API_URL, fetchWithTimeout } from './config';
 
 // Interface for API data
 interface ColorAPI {
@@ -23,8 +23,8 @@ const mapLocalToApi = (localColor: RubberColor): ColorAPI => ({
 // Get all stock
 export const getStock = async (): Promise<RubberColor[]> => {
   try {
-    if (__DEV__) console.log(`Getting stock from: ${API_URL}${STOCK_ENDPOINT}`);
-    const response = await fetchWithTimeout(`${API_URL}${STOCK_ENDPOINT}`);
+    if (__DEV__) console.log(`Getting stock from: ${API_URL}${"/stock"}`);
+    const response = await fetchWithTimeout(`${API_URL}${"/stock"}`);
     
     if (!response.ok) {
       throw new Error(`Error getting stock: ${response.status}`);
@@ -43,7 +43,7 @@ export const addColor = async (color: RubberColor): Promise<void> => {
   try {
     const colorAPI = mapLocalToApi(color);
     
-    const response = await fetch(`${API_URL}${STOCK_ENDPOINT}`, {
+    const response = await fetch(`${API_URL}${"/stock"}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export const updateColor = async (color: RubberColor): Promise<void> => {
   try {
     const colorAPI = mapLocalToApi(color);
     
-    const response = await fetch(`${API_URL}${STOCK_ENDPOINT}/${encodeURIComponent(color.name)}`, {
+    const response = await fetch(`${API_URL}${"/stock"}/${encodeURIComponent(color.name)}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export const updateColor = async (color: RubberColor): Promise<void> => {
 // Delete a color
 export const deleteColor = async (colorName: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}${STOCK_ENDPOINT}/${encodeURIComponent(colorName)}`, {
+    const response = await fetch(`${API_URL}${"/stock"}/${encodeURIComponent(colorName)}`, {
       method: 'DELETE',
     });
     
@@ -97,27 +97,6 @@ export const deleteColor = async (colorName: string): Promise<void> => {
     }
   } catch (error) {
     console.error('Error deleting color:', error);
-    throw error;
-  }
-};
-
-// Save custom color order (to be implemented when backend supports it)
-export const saveColorOrder = async (colorIds: string[]): Promise<void> => {
-  try {
-    const response = await fetch(`${API_URL}${STOCK_ENDPOINT}/order`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ colorOrder: colorIds }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Error saving color order: ${response.status}`);
-    }
-  } catch (error) {
-    console.error('Error saving color order:', error);
     throw error;
   }
 };

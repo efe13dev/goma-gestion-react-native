@@ -57,6 +57,7 @@ export default function HomeScreen() {
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [colorToDelete, setColorToDelete] = useState<RubberColor | null>(null);
 	const splashDone = useSplashDone();
+	const [itemsReady, setItemsReady] = useState(false);
 
 	// Animaciones de entrada
 	const {
@@ -65,7 +66,7 @@ export default function HomeScreen() {
 		headerStyle: animatedHeaderStyle,
 		contentStyle: animatedContentStyle,
 		fabStyle: animatedFabStyle,
-	} = useEntranceAnimation();
+	} = useEntranceAnimation(() => setItemsReady(true));
 
 	const quantityDebounceTimers = useRef<
 		Record<string, ReturnType<typeof setTimeout> | undefined>
@@ -188,7 +189,7 @@ export default function HomeScreen() {
 		[loadData],
 	);
 
-	const handleAddColor = useCallback(async () => {
+	const handleAddColor = async () => {
 		if (!newColorName.trim()) {
 			showError("Error", "Debe ingresar un nombre para el color");
 			return;
@@ -242,24 +243,21 @@ export default function HomeScreen() {
 			);
 			console.error("Error adding color:", err);
 		}
-	}, [newColorName, newColorQuantity, inventory]);
+	};
 
-	const handleDeleteColor = useCallback(
-		async (name: string) => {
-			// Actualización optimista: quitar localmente y revertir si falla.
-			const previousInventory = inventoryRef.current;
-			setInventory((prev) => prev.filter((color) => color.name !== name));
-			try {
-				await apiDeleteColor(name);
-				showSuccess("¡Eliminado!", `Color ${name} eliminado`);
-			} catch (err) {
-				setInventory(previousInventory);
-				showError("Error", "No se pudo eliminar el color. Intente nuevamente.");
-				console.error("Error deleting color:", err);
-			}
-		},
-		[],
-	);
+	const handleDeleteColor = async (name: string) => {
+		// Actualización optimista: quitar localmente y revertir si falla.
+		const previousInventory = inventoryRef.current;
+		setInventory((prev) => prev.filter((color) => color.name !== name));
+		try {
+			await apiDeleteColor(name);
+			showSuccess("¡Eliminado!", `Color ${name} eliminado`);
+		} catch (err) {
+			setInventory(previousInventory);
+			showError("Error", "No se pudo eliminar el color. Intente nuevamente.");
+			console.error("Error deleting color:", err);
+		}
+	};
 
 	const confirmDeleteColor = useCallback(
 		(color: RubberColor) => {
@@ -280,11 +278,11 @@ export default function HomeScreen() {
 
 	// Cerrar el diálogo sin tocar las animaciones de entrada: reiniciarlas
 	// aquí hacía que toda la pantalla "reapareciera" al cancelar el modal.
-	const closeDialog = useCallback(() => {
+	const closeDialog = () => {
 		setDialogVisible(false);
 		setNewColorName("");
 		setNewColorQuantity("");
-	}, []);
+	};
 
 	const reloadData = () => {
 		loadData(true);
@@ -396,8 +394,8 @@ export default function HomeScreen() {
 							</Card.Actions>
 						</Card>
 					</ScrollView>
-				) : isLoading ? (
-					<SkeletonList count={6} />
+			) : isLoading || !itemsReady ? (
+				<SkeletonList count={6} />
 				) : (
 					<Animated.View style={[{ flex: 1 }, animatedContentStyle]}>
 						<FlatList

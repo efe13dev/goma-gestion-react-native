@@ -6,7 +6,7 @@ import { calculateTotalWeight } from "@/utils/weight";
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     FlatList,
     KeyboardAvoidingView,
@@ -26,7 +26,6 @@ import {
     TextInput,
     useTheme
 } from "react-native-paper";
-import uuid from "react-native-uuid";
 
 interface IngredienteDraft {
     id: string;
@@ -43,6 +42,8 @@ const parseCantidad = (value: string) => {
     const parsed = Number(normalized);
     return Number.isNaN(parsed) ? null : parsed;
 };
+
+const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 export default function NuevaFormulaScreen() {
     const [nombreColor, setNombreColor] = useState("");
@@ -79,13 +80,13 @@ export default function NuevaFormulaScreen() {
     const isNombreValid = !!nombreDraft.trim();
     const canSubmitIngredient = isNombreValid && isCantidadValid;
 
-    const resetIngredientForm = useCallback(() => {
+    const resetIngredientForm = () => {
         setEditIngredientId(null);
         setIngredientAttempted(false);
         setNombreDraft("");
         setCantidadDraft("");
         // La unidad se mantiene a propósito para entrada en ráfaga.
-    }, []);
+    };
 
     const handleAddIngredient = () => {
         setIngredientAttempted(true);
@@ -110,7 +111,7 @@ export default function NuevaFormulaScreen() {
             setIngredientes((prev) => [
                 ...prev,
                 {
-                    id: uuid.v4().toString(),
+                    id: uid(),
                     nombre: nombreDraft.trim(),
                     cantidad: cantidadDraft,
                     unidad: unidadDraft,
@@ -125,37 +126,30 @@ export default function NuevaFormulaScreen() {
         setTimeout(() => ingredientNameRef.current?.focus?.(), 0);
     };
 
-    const handleRemoveIngredient = useCallback(
-        (id: string) => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            if (id === editIngredientId) {
-                resetIngredientForm();
-            }
-            setIngredientes((prev) => prev.filter((ing) => ing.id !== id));
-        },
-        [editIngredientId, resetIngredientForm],
-    );
+    const handleRemoveIngredient = (id: string) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        if (id === editIngredientId) {
+            resetIngredientForm();
+        }
+        setIngredientes((prev) => prev.filter((ing) => ing.id !== id));
+    };
 
-    const handleSelectIngredient = useCallback((ing: IngredienteDraft) => {
+    const handleSelectIngredient = (ing: IngredienteDraft) => {
         setEditIngredientId(ing.id);
         setIngredientAttempted(false);
         setNombreDraft(ing.nombre);
         setCantidadDraft(ing.cantidad);
         setUnidadDraft(ing.unidad);
         setTimeout(() => ingredientNameRef.current?.focus?.(), 0);
-    }, []);
+    };
 
     // Peso total en vivo de la fórmula en construcción.
-    const totalKg = useMemo(
-        () =>
-            calculateTotalWeight(
-                ingredientes.map((ing) => ({
-                    nombre: ing.nombre,
-                    cantidad: parseCantidad(ing.cantidad) ?? 0,
-                    unidad: ing.unidad,
-                })),
-            ),
-        [ingredientes],
+    const totalKg = calculateTotalWeight(
+        ingredientes.map((ing) => ({
+            nombre: ing.nombre,
+            cantidad: parseCantidad(ing.cantidad) ?? 0,
+            unidad: ing.unidad,
+        })),
     );
 
     const handleAddFormula = async () => {
@@ -183,7 +177,7 @@ export default function NuevaFormulaScreen() {
             }
 
             await addFormula({
-                id: uuid.v4().toString(),
+                id: uid(),
                 nombreColor,
                 ingredientes: ingredientes.map(({ id, cantidad, ...rest }) => ({
                     ...rest,

@@ -1,5 +1,5 @@
 import * as SplashScreen from "expo-splash-screen";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { StyleSheet, useWindowDimensions } from "react-native";
 import Animated, {
 	Easing,
@@ -27,26 +27,23 @@ const ZOOM_OUT_MS = 450;
 // para que la transición splash nativo -> overlay sea invisible.
 const IMAGE_SIZE = 240;
 
-// Pseudo-aleatorio determinista por índice para que cada grano tenga su propia
-// trayectoria sin re-aleatorizarse en cada render.
-const rand = (i: number, salt: number) => {
-	const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
-	return x - Math.floor(x);
-};
-
 function Grain({ index }: { index: number }) {
 	const { width, height } = useWindowDimensions();
 	const progress = useSharedValue(0);
 
-	const size = 5 + rand(index, 1) * 6;
-	// Nacen de un chorro estrecho arriba (como si los vertieran) y se abren
-	// en abanico hasta cubrir el ancho de la boca de la cubeta al aterrizar.
-	const lateral = rand(index, 2) - 0.5;
+	const { size, lateral, endXJitter, endYOffset, rotation } = useMemo(
+		() => ({
+			size: 5 + Math.random() * 6,
+			lateral: Math.random() - 0.5,
+			endXJitter: (Math.random() - 0.5) * 12,
+			endYOffset: (Math.random() - 0.7) * IMAGE_SIZE * 0.25,
+			rotation: (Math.random() - 0.5) * 360,
+		}),
+		[],
+	);
 	const startX = width / 2 + lateral * IMAGE_SIZE * 0.12;
-	const endX = width / 2 + lateral * IMAGE_SIZE * 0.75 + (rand(index, 3) - 0.5) * 12;
-	// Los granos "aterrizan" en la boca de la cubeta (centro de la pantalla).
-	const endY = height / 2 + (rand(index, 4) - 0.7) * IMAGE_SIZE * 0.25;
-	const rotation = (rand(index, 5) - 0.5) * 360;
+	const endX = width / 2 + lateral * IMAGE_SIZE * 0.75 + endXJitter;
+	const endY = height / 2 + endYOffset;
 
 	useEffect(() => {
 		progress.value = withDelay(
