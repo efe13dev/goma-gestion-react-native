@@ -221,13 +221,10 @@ El proyecto incluye varios scripts útiles en `package.json`:
 - **Alternativa**: Usa datos móviles en lugar de WiFi
 
 #### 4. Problemas con TextInput al escribir números / dentro de modales (Android)
-- **Estado**: Pendiente de aplicar en próxima versión.
-- **Causa 1 (`app/formulas/nueva-formula.tsx`)**: `onChangeText` en el input de `Cantidad` llama a `syncDraftValidity()` (`setCanSubmitIngredient`). Al introducir el primer dígito, el estado pasa de `false` a `true` y dispara un re-render de toda la pantalla en mitad de la escritura.
-- **Causa 2 (`app.json` - Nueva Arquitectura en Expo SDK 52 / RN 0.76)**: `react-native-paper` actualiza su estado interno (`setUncontrolledValue`) en cada tecla aunque se use `defaultValue`. Con `"newArchEnabled": true`, cualquier `<TextInput>` dentro de `<Portal>` / `<Dialog>` sufre bloqueos o parpadeos en Android ([react-native-paper #4580](https://github.com/callstack/react-native-paper/issues/4580)).
-- **Pasos para solucionarlo**:
-  1. En `app.json`, cambiar `"newArchEnabled": true` a `"newArchEnabled": false`.
-  2. En `app/formulas/nueva-formula.tsx`, quitar `syncDraftValidity()` de `onChangeText` y validar únicamente al pulsar el botón de *Agregar*.
-  3. En los `<TextInput>` de `index.tsx`, `[id].tsx` y `nueva-formula.tsx`, no pasar `defaultValue=""` cuando esté vacío (usar `defaultValue={valorInicial || undefined}`).
+- **Estado**: Solucionado en v2.6.0 (Expo SDK 53 / React Native 0.79).
+- **Solución aplicada**:
+  1. Actualización a Expo SDK 53 (`react-native@0.79.6`), que corrige el bug de sincronización de texto de Fabric dentro de `<Portal>` / `<Dialog>`.
+  2. Eliminadas llamadas a `setState` dentro de `onChangeText` en todos los inputs (usando `useRef`) y eliminado `defaultValue=""` vacío para no interferir con el teclado nativo de Android.
 
 #### 5. Error: "Cannot resolve module"
 - **Solución**: Reinstala las dependencias

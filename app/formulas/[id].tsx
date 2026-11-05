@@ -602,7 +602,7 @@ export default function FormulaDetailScreen() {
 							label="Nombre"
 							mode="outlined"
 							outlineStyle={styles.inputOutline}
-							defaultValue={editedIngredient.nombre}
+							defaultValue={editedIngredient.nombre || undefined}
 							onChangeText={(text) => {
 								editedNameRef.current = text;
 							}}
@@ -612,7 +612,7 @@ export default function FormulaDetailScreen() {
 							label="Cantidad"
 							mode="outlined"
 							outlineStyle={styles.inputOutline}
-							defaultValue={editedIngredient.cantidad?.toString() || ""}
+							defaultValue={editedIngredient.cantidad ? editedIngredient.cantidad.toString() : undefined}
 							onChangeText={(text) => {
 								editedCantidadRef.current = text;
 							}}
@@ -720,7 +720,6 @@ export default function FormulaDetailScreen() {
 							label="Nombre del ingrediente"
 							mode="outlined"
 							outlineStyle={styles.inputOutline}
-							defaultValue=""
 							onChangeText={(text) => {
 								newNameRef.current = text;
 							}}
@@ -730,7 +729,6 @@ export default function FormulaDetailScreen() {
 							label="Cantidad"
 							mode="outlined"
 							outlineStyle={styles.inputOutline}
-							defaultValue=""
 							onChangeText={(text) => {
 								newCantidadRef.current = text;
 							}}

@@ -54,12 +54,10 @@ export default function NuevaFormulaScreen() {
     const nombreDraftRef = useRef("");
     const cantidadDraftRef = useRef("");
     const [initialDraft, setInitialDraft] = useState({ nombre: "", cantidad: "" });
-    const [canSubmitIngredient, setCanSubmitIngredient] = useState(false);
     // La unidad se conserva entre ingredientes: lo habitual es añadir varios
     // con la misma unidad seguidos.
     const [unidadDraft, setUnidadDraft] = useState("gr");
     const [editIngredientId, setEditIngredientId] = useState<string | null>(null);
-    const [ingredientAttempted, setIngredientAttempted] = useState(false);
     const [formResetKey, setFormResetKey] = useState(0);
     const ingredientNameRef = useRef<any>(null);
     const ingredientCantidadRef = useRef<any>(null);
@@ -80,29 +78,26 @@ export default function NuevaFormulaScreen() {
         });
     }, [navigation, router, theme.colors.background]);
 
-    const syncDraftValidity = () => {
-        const parsed = parseCantidad(cantidadDraftRef.current.trim());
-        const valid = !!nombreDraftRef.current.trim() && !!parsed && parsed > 0;
-        setCanSubmitIngredient((prev) => (prev === valid ? prev : valid));
-    };
-
     const resetIngredientForm = () => {
         setEditIngredientId(null);
-        setIngredientAttempted(false);
         nombreDraftRef.current = "";
         cantidadDraftRef.current = "";
         setInitialDraft({ nombre: "", cantidad: "" });
-        setCanSubmitIngredient(false);
         setFormResetKey((k) => k + 1);
         // La unidad se mantiene a propósito para entrada en ráfaga.
     };
 
     const handleAddIngredient = () => {
-        setIngredientAttempted(true);
         const rawNombre = nombreDraftRef.current.trim();
         const rawCantidad = cantidadDraftRef.current.trim();
         const parsed = parseCantidad(rawCantidad);
         if (!rawNombre || !parsed || parsed <= 0) {
+            showError(
+                "Datos incompletos",
+                !rawNombre
+                    ? "Escribe el nombre del ingrediente."
+                    : "Ingresa una cantidad válida mayor que cero.",
+            );
             return;
         }
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -148,12 +143,10 @@ export default function NuevaFormulaScreen() {
 
     const handleSelectIngredient = (ing: IngredienteDraft) => {
         setEditIngredientId(ing.id);
-        setIngredientAttempted(false);
         nombreDraftRef.current = ing.nombre;
         cantidadDraftRef.current = ing.cantidad;
         setInitialDraft({ nombre: ing.nombre, cantidad: ing.cantidad });
         setUnidadDraft(ing.unidad);
-        setCanSubmitIngredient(true);
         setFormResetKey((k) => k + 1);
         setTimeout(() => ingredientNameRef.current?.focus?.(), 0);
     };
@@ -284,13 +277,8 @@ export default function NuevaFormulaScreen() {
                         />
                         <TextInput
                             label="Nombre del color"
-                            defaultValue=""
                             onChangeText={(text) => {
                                 nombreColorRef.current = text;
-                                const trimmed = text.trim();
-                                if (Boolean(trimmed) !== Boolean(nombreColor)) {
-                                    setNombreColor(trimmed);
-                                }
                             }}
                             onBlur={() => setNombreColor(nombreColorRef.current.trim())}
                             mode="outlined"
@@ -315,10 +303,9 @@ export default function NuevaFormulaScreen() {
                             <TextInput
                                 label="Ingrediente"
                                 ref={ingredientNameRef}
-                                defaultValue={initialDraft.nombre}
+                                defaultValue={initialDraft.nombre || undefined}
                                 onChangeText={(text) => {
                                     nombreDraftRef.current = text;
-                                    syncDraftValidity();
                                 }}
                                 mode="outlined"
                                 outlineStyle={styles.inputOutline}
@@ -327,37 +314,26 @@ export default function NuevaFormulaScreen() {
                                 returnKeyType="next"
                                 blurOnSubmit={false}
                                 onSubmitEditing={() => ingredientCantidadRef.current?.focus?.()}
-                                error={ingredientAttempted && !nombreDraftRef.current.trim()}
                             />
                             <TextInput
                                 label="Cantidad"
                                 ref={ingredientCantidadRef}
-                                defaultValue={initialDraft.cantidad}
+                                defaultValue={initialDraft.cantidad || undefined}
                                 onChangeText={(text) => {
                                     cantidadDraftRef.current = text;
-                                    syncDraftValidity();
                                 }}
                                 mode="outlined"
                                 outlineStyle={styles.inputOutline}
                                 dense
                                 keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
-                                inputMode="decimal"
                                 autoCorrect={false}
                                 autoCapitalize="none"
                                 returnKeyType="done"
                                 blurOnSubmit={false}
                                 onSubmitEditing={handleAddIngredient}
                                 style={[styles.input, { flex: 1 }]}
-                                error={ingredientAttempted && !canSubmitIngredient}
                             />
                         </View>
-                        {ingredientAttempted && !canSubmitIngredient ? (
-                            <Text variant="bodySmall" style={[styles.inlineError, { color: theme.colors.error }]}>
-                                {!nombreDraftRef.current.trim()
-                                    ? "Escribe el nombre del ingrediente."
-                                    : "Ingresa una cantidad válida mayor que cero."}
-                            </Text>
-                        ) : null}
 
                         <View style={styles.formRow}>
                             <SegmentedButtons
@@ -374,7 +350,6 @@ export default function NuevaFormulaScreen() {
                                 mode="contained-tonal"
                                 onPress={handleAddIngredient}
                                 icon={editIngredientId ? "check" : "plus"}
-                                disabled={!canSubmitIngredient}
                                 compact
                             >
                                 {editIngredientId ? "Actualizar" : "Agregar"}
@@ -436,7 +411,7 @@ export default function NuevaFormulaScreen() {
                         mode="contained"
                         onPress={handleAddFormula}
                         loading={isLoading}
-                        disabled={isLoading || !nombreColor.trim() || ingredientes.length === 0}
+                        disabled={isLoading || ingredientes.length === 0}
                         style={styles.submitButton}
                         contentStyle={styles.submitButtonContent}
                     >

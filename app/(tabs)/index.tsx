@@ -549,7 +549,6 @@ export default function HomeScreen() {
 						<Dialog.Content>
 							<TextInput
 								label="Nombre del color"
-								defaultValue=""
 								onChangeText={(text) => {
 									newColorNameRef.current = text;
 								}}
@@ -559,7 +558,6 @@ export default function HomeScreen() {
 							/>
 							<TextInput
 								label="Cantidad inicial (palots)"
-								defaultValue=""
 								onChangeText={(text) => {
 									newColorQuantityRef.current = text;
 								}}
