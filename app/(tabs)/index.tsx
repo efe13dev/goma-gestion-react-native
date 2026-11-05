@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	FlatList,
 	Image,
+	Keyboard,
 	RefreshControl,
 	ScrollView,
 	StyleSheet,
@@ -51,11 +52,12 @@ export default function HomeScreen() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [newColorName, setNewColorName] = useState("");
-	const [newColorQuantity, setNewColorQuantity] = useState("");
+	const newColorNameRef = useRef("");
+	const newColorQuantityRef = useRef("");
 	const [dialogVisible, setDialogVisible] = useState(false);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [colorToDelete, setColorToDelete] = useState<RubberColor | null>(null);
+	const [keyboardHeight, setKeyboardHeight] = useState(0);
 	const splashDone = useSplashDone();
 
 	// Animaciones de entrada
@@ -84,6 +86,19 @@ export default function HomeScreen() {
 	useEffect(() => {
 		inventoryRef.current = inventory;
 	}, [inventory]);
+
+	useEffect(() => {
+		const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+			setKeyboardHeight(e.endCoordinates.height);
+		});
+		const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+			setKeyboardHeight(0);
+		});
+		return () => {
+			showSub.remove();
+			hideSub.remove();
+		};
+	}, []);
 
 	useEffect(() => {
 		return () => {
@@ -189,7 +204,9 @@ export default function HomeScreen() {
 	);
 
 	const handleAddColor = async () => {
-		if (!newColorName.trim()) {
+		const rawName = newColorNameRef.current;
+		const rawQuantity = newColorQuantityRef.current;
+		if (!rawName.trim()) {
 			showError("Error", "Debe ingresar un nombre para el color");
 			return;
 		}
@@ -197,17 +214,17 @@ export default function HomeScreen() {
 		// Validar si el color ya existe (por nombre, ignorando mayúsculas/minúsculas y espacios)
 		const exists = inventory.some(
 			(color) =>
-				color.name.trim().toLowerCase() === newColorName.trim().toLowerCase(),
+				color.name.trim().toLowerCase() === rawName.trim().toLowerCase(),
 		);
 		if (exists) {
-			showError("Error", `El color '${newColorName}' ya existe.`);
+			showError("Error", `El color '${rawName}' ya existe.`);
 			return;
 		}
 
 		// Validate that the quantity is a valid number
 		let quantity = 0;
-		if (newColorQuantity.trim()) {
-			quantity = Number.parseInt(newColorQuantity, 10);
+		if (rawQuantity.trim()) {
+			quantity = Number.parseInt(rawQuantity, 10);
 			if (Number.isNaN(quantity)) {
 				showError("Error", "La cantidad debe ser un número válido");
 				return;
@@ -219,21 +236,21 @@ export default function HomeScreen() {
 		}
 
 		const newColor: RubberColor = {
-			id: newColorName.toLowerCase().replace(/\s+/g, "-"),
-			name: newColorName,
+			id: rawName.toLowerCase().replace(/\s+/g, "-"),
+			name: rawName,
 			quantity,
 		};
 
 		// Actualización optimista: añadir localmente y cerrar el diálogo sin
 		// desmontar la lista; si la API falla, se revierte.
 		setInventory((prev) => [...prev, newColor]);
-		setNewColorName("");
-		setNewColorQuantity("");
+		newColorNameRef.current = "";
+		newColorQuantityRef.current = "";
 		setDialogVisible(false);
 
 		try {
 			await addColor(newColor);
-			showSuccess("¡Añadido!", `Color ${newColorName} agregado`);
+			showSuccess("¡Añadido!", `Color ${rawName} agregado`);
 		} catch (err) {
 			setInventory((prev) => prev.filter((color) => color.id !== newColor.id));
 			showError(
@@ -279,8 +296,8 @@ export default function HomeScreen() {
 	// aquí hacía que toda la pantalla "reapareciera" al cancelar el modal.
 	const closeDialog = () => {
 		setDialogVisible(false);
-		setNewColorName("");
-		setNewColorQuantity("");
+		newColorNameRef.current = "";
+		newColorQuantityRef.current = "";
 	};
 
 	const reloadData = () => {
@@ -520,55 +537,32 @@ export default function HomeScreen() {
 					<Dialog
 						visible={dialogVisible}
 						onDismiss={closeDialog}
-						style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
+						style={[
+							styles.dialog,
+							{
+								backgroundColor: theme.colors.surface,
+								marginBottom: keyboardHeight,
+							},
+						]}
 					>
 						<Dialog.Title style={styles.dialogTitle}>Nuevo Color</Dialog.Title>
 						<Dialog.Content>
-							<View
-								style={[
-									styles.dialogPreviewChip,
-									{
-										backgroundColor: theme.colors.elevation.level2,
-										borderColor: theme.colors.outlineVariant,
-									},
-								]}
-							>
-								<View
-									style={[
-										styles.colorSwatch,
-										{
-											backgroundColor: getColorSwatch(newColorName || "gris"),
-											borderColor: theme.colors.outlineVariant,
-										},
-									]}
-								/>
-								<Text
-									variant="bodyMedium"
-									style={{
-										marginLeft: 10,
-										color: newColorName.trim()
-											? theme.colors.onSurface
-											: theme.colors.onSurfaceVariant,
-										fontWeight: "600",
-									}}
-								>
-									{newColorName.trim()
-										? formatColorName(newColorName.trim())
-										: "Vista previa del color"}
-								</Text>
-							</View>
 							<TextInput
 								label="Nombre del color"
-								value={newColorName}
-								onChangeText={setNewColorName}
+								defaultValue=""
+								onChangeText={(text) => {
+									newColorNameRef.current = text;
+								}}
 								mode="outlined"
 								outlineStyle={styles.inputOutline}
 								style={styles.dialogInput}
 							/>
 							<TextInput
 								label="Cantidad inicial (palots)"
-								value={newColorQuantity}
-								onChangeText={setNewColorQuantity}
+								defaultValue=""
+								onChangeText={(text) => {
+									newColorQuantityRef.current = text;
+								}}
 								keyboardType="numeric"
 								mode="outlined"
 								outlineStyle={styles.inputOutline}

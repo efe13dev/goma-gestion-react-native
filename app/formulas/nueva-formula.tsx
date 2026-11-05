@@ -48,15 +48,19 @@ const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice
 
 export default function NuevaFormulaScreen() {
     const [nombreColor, setNombreColor] = useState("");
+    const nombreColorRef = useRef("");
     const [isLoading, setIsLoading] = useState(false);
     const [ingredientes, setIngredientes] = useState<IngredienteDraft[]>([]);
-    const [nombreDraft, setNombreDraft] = useState("");
-    const [cantidadDraft, setCantidadDraft] = useState("");
+    const nombreDraftRef = useRef("");
+    const cantidadDraftRef = useRef("");
+    const [initialDraft, setInitialDraft] = useState({ nombre: "", cantidad: "" });
+    const [canSubmitIngredient, setCanSubmitIngredient] = useState(false);
     // La unidad se conserva entre ingredientes: lo habitual es añadir varios
     // con la misma unidad seguidos.
     const [unidadDraft, setUnidadDraft] = useState("gr");
     const [editIngredientId, setEditIngredientId] = useState<string | null>(null);
     const [ingredientAttempted, setIngredientAttempted] = useState(false);
+    const [formResetKey, setFormResetKey] = useState(0);
     const ingredientNameRef = useRef<any>(null);
     const ingredientCantidadRef = useRef<any>(null);
     const listRef = useRef<FlatList<IngredienteDraft> | null>(null);
@@ -76,22 +80,29 @@ export default function NuevaFormulaScreen() {
         });
     }, [navigation, router, theme.colors.background]);
 
-    const parsedCantidad = parseCantidad(cantidadDraft.trim());
-    const isCantidadValid = !!parsedCantidad && parsedCantidad > 0;
-    const isNombreValid = !!nombreDraft.trim();
-    const canSubmitIngredient = isNombreValid && isCantidadValid;
+    const syncDraftValidity = () => {
+        const parsed = parseCantidad(cantidadDraftRef.current.trim());
+        const valid = !!nombreDraftRef.current.trim() && !!parsed && parsed > 0;
+        setCanSubmitIngredient((prev) => (prev === valid ? prev : valid));
+    };
 
     const resetIngredientForm = () => {
         setEditIngredientId(null);
         setIngredientAttempted(false);
-        setNombreDraft("");
-        setCantidadDraft("");
+        nombreDraftRef.current = "";
+        cantidadDraftRef.current = "";
+        setInitialDraft({ nombre: "", cantidad: "" });
+        setCanSubmitIngredient(false);
+        setFormResetKey((k) => k + 1);
         // La unidad se mantiene a propósito para entrada en ráfaga.
     };
 
     const handleAddIngredient = () => {
         setIngredientAttempted(true);
-        if (!isNombreValid || !isCantidadValid) {
+        const rawNombre = nombreDraftRef.current.trim();
+        const rawCantidad = cantidadDraftRef.current.trim();
+        const parsed = parseCantidad(rawCantidad);
+        if (!rawNombre || !parsed || parsed <= 0) {
             return;
         }
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -101,8 +112,8 @@ export default function NuevaFormulaScreen() {
                     ing.id === editIngredientId
                         ? {
                               ...ing,
-                              nombre: nombreDraft.trim(),
-                              cantidad: cantidadDraft,
+                              nombre: rawNombre,
+                              cantidad: rawCantidad,
                               unidad: unidadDraft,
                           }
                         : ing,
@@ -113,8 +124,8 @@ export default function NuevaFormulaScreen() {
                 ...prev,
                 {
                     id: uid(),
-                    nombre: nombreDraft.trim(),
-                    cantidad: cantidadDraft,
+                    nombre: rawNombre,
+                    cantidad: rawCantidad,
                     unidad: unidadDraft,
                 },
             ]);
@@ -138,9 +149,12 @@ export default function NuevaFormulaScreen() {
     const handleSelectIngredient = (ing: IngredienteDraft) => {
         setEditIngredientId(ing.id);
         setIngredientAttempted(false);
-        setNombreDraft(ing.nombre);
-        setCantidadDraft(ing.cantidad);
+        nombreDraftRef.current = ing.nombre;
+        cantidadDraftRef.current = ing.cantidad;
+        setInitialDraft({ nombre: ing.nombre, cantidad: ing.cantidad });
         setUnidadDraft(ing.unidad);
+        setCanSubmitIngredient(true);
+        setFormResetKey((k) => k + 1);
         setTimeout(() => ingredientNameRef.current?.focus?.(), 0);
     };
 
@@ -154,7 +168,8 @@ export default function NuevaFormulaScreen() {
     );
 
     const handleAddFormula = async () => {
-        if (!nombreColor.trim() || ingredientes.length === 0) {
+        const currentNombreColor = nombreColorRef.current.trim();
+        if (!currentNombreColor || ingredientes.length === 0) {
             showError(
                 "Error",
                 "Completa el nombre del color y agrega al menos un ingrediente",
@@ -169,17 +184,17 @@ export default function NuevaFormulaScreen() {
             const existe = formulasExistentes.some(
                 (f) =>
                     f.name.trim().toLowerCase() ===
-                    nombreColor.trim().toLowerCase(),
+                    currentNombreColor.toLowerCase(),
             );
             if (existe) {
-                showError("Error", `La fórmula '${nombreColor}' ya existe.`);
+                showError("Error", `La fórmula '${currentNombreColor}' ya existe.`);
                 setIsLoading(false);
                 return;
             }
 
             await addFormula({
                 id: uid(),
-                nombreColor,
+                nombreColor: currentNombreColor,
                 ingredientes: ingredientes.map(({ id, cantidad, ...rest }) => ({
                     ...rest,
                     cantidad: Number(cantidad.replace(",", ".")),
@@ -269,8 +284,15 @@ export default function NuevaFormulaScreen() {
                         />
                         <TextInput
                             label="Nombre del color"
-                            value={nombreColor}
-                            onChangeText={setNombreColor}
+                            defaultValue=""
+                            onChangeText={(text) => {
+                                nombreColorRef.current = text;
+                                const trimmed = text.trim();
+                                if (Boolean(trimmed) !== Boolean(nombreColor)) {
+                                    setNombreColor(trimmed);
+                                }
+                            }}
+                            onBlur={() => setNombreColor(nombreColorRef.current.trim())}
                             mode="outlined"
                             outlineStyle={styles.inputOutline}
                             placeholder="Ejemplo: Azul cielo"
@@ -289,12 +311,15 @@ export default function NuevaFormulaScreen() {
                         ]}
                         elevation={0}
                     >
-                        <View style={styles.formRow}>
+                        <View key={formResetKey} style={styles.formRow}>
                             <TextInput
                                 label="Ingrediente"
                                 ref={ingredientNameRef}
-                                value={nombreDraft}
-                                onChangeText={setNombreDraft}
+                                defaultValue={initialDraft.nombre}
+                                onChangeText={(text) => {
+                                    nombreDraftRef.current = text;
+                                    syncDraftValidity();
+                                }}
                                 mode="outlined"
                                 outlineStyle={styles.inputOutline}
                                 dense
@@ -302,13 +327,16 @@ export default function NuevaFormulaScreen() {
                                 returnKeyType="next"
                                 blurOnSubmit={false}
                                 onSubmitEditing={() => ingredientCantidadRef.current?.focus?.()}
-                                error={ingredientAttempted && !isNombreValid}
+                                error={ingredientAttempted && !nombreDraftRef.current.trim()}
                             />
                             <TextInput
                                 label="Cantidad"
                                 ref={ingredientCantidadRef}
-                                value={cantidadDraft}
-                                onChangeText={setCantidadDraft}
+                                defaultValue={initialDraft.cantidad}
+                                onChangeText={(text) => {
+                                    cantidadDraftRef.current = text;
+                                    syncDraftValidity();
+                                }}
                                 mode="outlined"
                                 outlineStyle={styles.inputOutline}
                                 dense
@@ -320,12 +348,12 @@ export default function NuevaFormulaScreen() {
                                 blurOnSubmit={false}
                                 onSubmitEditing={handleAddIngredient}
                                 style={[styles.input, { flex: 1 }]}
-                                error={ingredientAttempted && !isCantidadValid}
+                                error={ingredientAttempted && !canSubmitIngredient}
                             />
                         </View>
                         {ingredientAttempted && !canSubmitIngredient ? (
                             <Text variant="bodySmall" style={[styles.inlineError, { color: theme.colors.error }]}>
-                                {!isNombreValid
+                                {!nombreDraftRef.current.trim()
                                     ? "Escribe el nombre del ingrediente."
                                     : "Ingresa una cantidad válida mayor que cero."}
                             </Text>

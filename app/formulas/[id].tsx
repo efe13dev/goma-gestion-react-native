@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
+	Keyboard,
 	StyleSheet,
 	View,
 } from "react-native";
@@ -156,12 +157,26 @@ export default function FormulaDetailScreen() {
 		cantidad: 0,
 		unidad: "gr",
 	});
+	const editedNameRef = useRef("");
+	const editedCantidadRef = useRef("");
 	const [addDialogVisible, setAddDialogVisible] = useState(false);
-	const [newIngredient, setNewIngredient] = useState({
-		nombre: "",
-		cantidad: "",
-		unidad: "gr",
-	});
+	const [newIngredientUnidad, setNewIngredientUnidad] = useState("gr");
+	const newNameRef = useRef("");
+	const newCantidadRef = useRef("");
+	const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+	useEffect(() => {
+		const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+			setKeyboardHeight(e.endCoordinates.height);
+		});
+		const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+			setKeyboardHeight(0);
+		});
+		return () => {
+			showSub.remove();
+			hideSub.remove();
+		};
+	}, []);
 	// Evita volver al spinner/skeleton (y desmontar el contenido) en recargas
 	// posteriores a la primera carga.
 	const hasLoadedRef = useRef(false);
@@ -244,14 +259,23 @@ export default function FormulaDetailScreen() {
 	const handleIngredientPress = (ingrediente: Ingrediente, index: number) => {
 		setSelectedIngredientIndex(index);
 		setEditedIngredient({ ...ingrediente });
+		editedNameRef.current = ingrediente.nombre;
+		editedCantidadRef.current = ingrediente.cantidad?.toString() || "";
 		setEditDialogVisible(true);
 	};
 
 	const handleUpdateIngredient = async () => {
 		if (selectedIngredientIndex === null || !formula) return;
 
+		const parsedCantidad = Number.parseFloat(
+			editedCantidadRef.current.replace(",", "."),
+		);
 		const updatedIngredients = [...(formula.ingredientes || [])];
-		updatedIngredients[selectedIngredientIndex] = editedIngredient;
+		updatedIngredients[selectedIngredientIndex] = {
+			...editedIngredient,
+			nombre: editedNameRef.current.trim() || editedIngredient.nombre,
+			cantidad: Number.isNaN(parsedCantidad) ? 0 : parsedCantidad,
+		};
 
 		setEditDialogVisible(false);
 		await persistIngredients(
@@ -285,7 +309,9 @@ export default function FormulaDetailScreen() {
 	};
 
 	const handleAddIngredient = () => {
-		setNewIngredient({ nombre: "", cantidad: "", unidad: "gr" });
+		newNameRef.current = "";
+		newCantidadRef.current = "";
+		setNewIngredientUnidad("gr");
 		setAddDialogVisible(true);
 	};
 
@@ -382,18 +408,21 @@ export default function FormulaDetailScreen() {
 
 	const handleSaveNewIngredient = async () => {
 		if (!formula) return;
-		if (!newIngredient.nombre.trim() || !newIngredient.cantidad.trim()) {
+		const nombre = newNameRef.current.trim();
+		const rawCantidad = newCantidadRef.current.trim().replace(",", ".");
+		if (!nombre || !rawCantidad) {
 			showError("Error", "Completa el nombre y la cantidad del ingrediente");
 			return;
 		}
 		const ingredienteObj = {
-			nombre: newIngredient.nombre.trim(),
-			cantidad: Number(newIngredient.cantidad),
-			unidad: newIngredient.unidad.trim() || "gr",
+			nombre,
+			cantidad: Number(rawCantidad),
+			unidad: newIngredientUnidad.trim() || "gr",
 		};
 
 		setAddDialogVisible(false);
-		setNewIngredient({ nombre: "", cantidad: "", unidad: "gr" });
+		newNameRef.current = "";
+		newCantidadRef.current = "";
 		await persistIngredients(
 			[...(formula.ingredientes || []), ingredienteObj],
 			"Ingrediente añadido",
@@ -548,7 +577,13 @@ export default function FormulaDetailScreen() {
 				<Dialog
 					visible={editDialogVisible}
 					onDismiss={() => setEditDialogVisible(false)}
-					style={[styles.dialogContent, { backgroundColor: theme.colors.surface }]}
+					style={[
+						styles.dialogContent,
+						{
+							backgroundColor: theme.colors.surface,
+							marginBottom: keyboardHeight,
+						},
+					]}
 				>
 					<View style={styles.dialogHeaderRow}>
 						<Dialog.Title style={styles.dialogTitleInline}>
@@ -567,10 +602,10 @@ export default function FormulaDetailScreen() {
 							label="Nombre"
 							mode="outlined"
 							outlineStyle={styles.inputOutline}
-							value={editedIngredient.nombre}
-							onChangeText={(text) =>
-								setEditedIngredient({ ...editedIngredient, nombre: text })
-							}
+							defaultValue={editedIngredient.nombre}
+							onChangeText={(text) => {
+								editedNameRef.current = text;
+							}}
 							style={styles.dialogInput}
 						/>
 						<TextInput
@@ -579,11 +614,7 @@ export default function FormulaDetailScreen() {
 							outlineStyle={styles.inputOutline}
 							defaultValue={editedIngredient.cantidad?.toString() || ""}
 							onChangeText={(text) => {
-								const num = Number.parseFloat(text);
-								setEditedIngredient({
-									...editedIngredient,
-									cantidad: isNaN(num) ? 0 : num,
-								});
+								editedCantidadRef.current = text;
 							}}
 							keyboardType="numeric"
 							style={styles.dialogInput}
@@ -675,7 +706,13 @@ export default function FormulaDetailScreen() {
 				<Dialog
 					visible={addDialogVisible}
 					onDismiss={() => setAddDialogVisible(false)}
-					style={[styles.dialogContent, { backgroundColor: theme.colors.surface }]}
+					style={[
+						styles.dialogContent,
+						{
+							backgroundColor: theme.colors.surface,
+							marginBottom: keyboardHeight,
+						},
+					]}
 				>
 					<Dialog.Title style={{ fontWeight: "700" }}>Nuevo Ingrediente</Dialog.Title>
 					<Dialog.Content>
@@ -683,30 +720,27 @@ export default function FormulaDetailScreen() {
 							label="Nombre del ingrediente"
 							mode="outlined"
 							outlineStyle={styles.inputOutline}
-							value={newIngredient.nombre}
-							onChangeText={(text) =>
-								setNewIngredient({ ...newIngredient, nombre: text })
-							}
+							defaultValue=""
+							onChangeText={(text) => {
+								newNameRef.current = text;
+							}}
 							style={styles.dialogInput}
 						/>
 						<TextInput
 							label="Cantidad"
 							mode="outlined"
 							outlineStyle={styles.inputOutline}
-							value={newIngredient.cantidad}
+							defaultValue=""
 							onChangeText={(text) => {
-								const cleanText = text.replace(/[^\d.]/g, '');
-								setNewIngredient({ ...newIngredient, cantidad: cleanText });
+								newCantidadRef.current = text;
 							}}
 							keyboardType="numeric"
 							style={styles.dialogInput}
 						/>
 						<Text variant="labelMedium" style={styles.unitLabel}>Unidad de medida</Text>
 						<SegmentedButtons
-							value={newIngredient.unidad}
-							onValueChange={(value) =>
-								setNewIngredient({ ...newIngredient, unidad: value })
-							}
+							value={newIngredientUnidad}
+							onValueChange={setNewIngredientUnidad}
 							buttons={[
 								{ value: "gr", label: "gr" },
 								{ value: "kg", label: "kg" },
