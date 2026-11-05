@@ -2,7 +2,7 @@
 	"expo": {
 		"name": "Goma",
 		"slug": "goma-gestion-react-native",
-    	"version": "2.5.0",
+    	"version": "2.5.1",
 		"orientation": "portrait",
 		"icon": "./assets/images/icon.png",
 		"scheme": "myapp",
@@ -17,7 +17,7 @@
 				"backgroundColor": "#ffffff"
 			},
 			"package": "com.eefee.gomagestionreactnative",
-    		"versionCode": 10
+    		"versionCode": 11
 		},
 		"web": {
 			"bundler": "metro",
@@ -42,7 +42,11 @@
 						"compileSdkVersion": 35,
 						"targetSdkVersion": 35,
 						"buildToolsVersion": "35.0.0",
-						"minSdkVersion": 24
+						"minSdkVersion": 24,
+						"buildArchs": ["arm64-v8a"],
+						"useLegacyPackaging": true,
+						"enableProguardInReleaseBuilds": true,
+						"enableShrinkResourcesInReleaseBuilds": true
 					}
 				}
 			]
