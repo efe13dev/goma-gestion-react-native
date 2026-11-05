@@ -14,7 +14,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
-	Keyboard,
 	StyleSheet,
 	View,
 } from "react-native";
@@ -163,20 +162,6 @@ export default function FormulaDetailScreen() {
 	const [newIngredientUnidad, setNewIngredientUnidad] = useState("gr");
 	const newNameRef = useRef("");
 	const newCantidadRef = useRef("");
-	const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-	useEffect(() => {
-		const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-			setKeyboardHeight(e.endCoordinates.height);
-		});
-		const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-			setKeyboardHeight(0);
-		});
-		return () => {
-			showSub.remove();
-			hideSub.remove();
-		};
-	}, []);
 	// Evita volver al spinner/skeleton (y desmontar el contenido) en recargas
 	// posteriores a la primera carga.
 	const hasLoadedRef = useRef(false);
@@ -577,13 +562,7 @@ export default function FormulaDetailScreen() {
 				<Dialog
 					visible={editDialogVisible}
 					onDismiss={() => setEditDialogVisible(false)}
-					style={[
-						styles.dialogContent,
-						{
-							backgroundColor: theme.colors.surface,
-							marginBottom: keyboardHeight,
-						},
-					]}
+					style={[styles.dialogContent, { backgroundColor: theme.colors.surface }]}
 				>
 					<View style={styles.dialogHeaderRow}>
 						<Dialog.Title style={styles.dialogTitleInline}>
@@ -706,13 +685,7 @@ export default function FormulaDetailScreen() {
 				<Dialog
 					visible={addDialogVisible}
 					onDismiss={() => setAddDialogVisible(false)}
-					style={[
-						styles.dialogContent,
-						{
-							backgroundColor: theme.colors.surface,
-							marginBottom: keyboardHeight,
-						},
-					]}
+					style={[styles.dialogContent, { backgroundColor: theme.colors.surface }]}
 				>
 					<Dialog.Title style={{ fontWeight: "700" }}>Nuevo Ingrediente</Dialog.Title>
 					<Dialog.Content>

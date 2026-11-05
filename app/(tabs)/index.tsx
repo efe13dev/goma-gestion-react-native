@@ -18,7 +18,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	FlatList,
 	Image,
-	Keyboard,
 	RefreshControl,
 	ScrollView,
 	StyleSheet,
@@ -57,7 +56,6 @@ export default function HomeScreen() {
 	const [dialogVisible, setDialogVisible] = useState(false);
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [colorToDelete, setColorToDelete] = useState<RubberColor | null>(null);
-	const [keyboardHeight, setKeyboardHeight] = useState(0);
 	const splashDone = useSplashDone();
 
 	// Animaciones de entrada
@@ -86,19 +84,6 @@ export default function HomeScreen() {
 	useEffect(() => {
 		inventoryRef.current = inventory;
 	}, [inventory]);
-
-	useEffect(() => {
-		const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-			setKeyboardHeight(e.endCoordinates.height);
-		});
-		const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-			setKeyboardHeight(0);
-		});
-		return () => {
-			showSub.remove();
-			hideSub.remove();
-		};
-	}, []);
 
 	useEffect(() => {
 		return () => {
@@ -537,13 +522,7 @@ export default function HomeScreen() {
 					<Dialog
 						visible={dialogVisible}
 						onDismiss={closeDialog}
-						style={[
-							styles.dialog,
-							{
-								backgroundColor: theme.colors.surface,
-								marginBottom: keyboardHeight,
-							},
-						]}
+						style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
 					>
 						<Dialog.Title style={styles.dialogTitle}>Nuevo Color</Dialog.Title>
 						<Dialog.Content>
