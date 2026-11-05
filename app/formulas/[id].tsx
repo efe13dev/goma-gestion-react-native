@@ -1,8 +1,9 @@
 import { getFormulaById, updateFormula } from "@/api/formulasApi";
 import AnimatedListItem from "@/components/AnimatedListItem";
 import SkeletonList from "@/components/SkeletonCard";
-import { Spacing } from "@/constants/Spacing";
+import { BorderRadius, Spacing } from "@/constants/Spacing";
 import { useEntranceAnimation } from "@/hooks/useEntranceAnimation";
+import { getColorSwatch } from "@/types/colors";
 import type { Formula, Ingrediente } from "@/types/formulas";
 import { showError, showSuccess } from "@/utils/toast";
 import { calculateTotalWeight } from "@/utils/weight";
@@ -89,10 +90,16 @@ function IngredientCard({
 		<AnimatedListItem index={index}>
 			<Animated.View style={animatedStyle}>
 				<Card
-					style={styles.ingredientsCard}
+					style={[
+						styles.ingredientsCard,
+						{
+							backgroundColor: theme.colors.surface,
+							borderColor: theme.colors.outlineVariant,
+						},
+					]}
 					onPress={onPress}
 					mode="elevated"
-					elevation={1}
+					elevation={0}
 					onPressIn={() => {
 						scale.value = withSpring(0.97, pressConfig);
 					}}
@@ -106,26 +113,27 @@ function IngredientCard({
 								{capitalizeFirstLetter(name)}
 							</Text>
 						</View>
-						<View style={styles.quantitySection}>
-							<View style={styles.quantityContainer}>
-								<Text variant="titleLarge" style={[styles.quantityNumber, { color: theme.colors.primary }]}>
-									{quantity}
-								</Text>
-								<Text variant="bodyMedium" style={[styles.quantityUnit, { color: theme.colors.onSurfaceVariant }]}>
-									{unit}
-								</Text>
-							</View>
+						<View
+							style={[
+								styles.quantityContainer,
+								{ backgroundColor: theme.colors.secondaryContainer },
+							]}
+						>
+							<Text variant="titleMedium" style={[styles.quantityNumber, { color: theme.colors.onSecondaryContainer }]}>
+								{quantity}
+							</Text>
+							<Text variant="labelMedium" style={[styles.quantityUnit, { color: theme.colors.onSecondaryContainer }]}>
+								{unit}
+							</Text>
 						</View>
-						<View style={styles.buttonSection}>
-							<IconButton 
-								icon="pencil" 
-								size={20} 
-								iconColor={theme.colors.onSurfaceVariant}
-								mode="contained-tonal"
-								accessibilityLabel={`Editar ${name}`}
-								onPress={onPress}
-							/>
-						</View>
+						<IconButton 
+							icon="pencil-outline" 
+							size={18} 
+							style={{ margin: 0, marginLeft: 4 }}
+							iconColor={theme.colors.onSurfaceVariant}
+							accessibilityLabel={`Editar ${name}`}
+							onPress={onPress}
+						/>
 					</Card.Content>
 				</Card>
 			</Animated.View>
@@ -396,8 +404,8 @@ export default function FormulaDetailScreen() {
 
 	if (isLoading) {
 		return (
-			<Surface style={styles.container}>
-				<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+			<Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
+				<Appbar.Header mode="center-aligned" style={[styles.appBar, { backgroundColor: theme.colors.background }]}>
 					<Appbar.BackAction onPress={() => router.back()} accessibilityLabel="Volver" />
 					<Appbar.Content title={capitalizeFirstLetter(name ?? "")} titleStyle={styles.appBarTitle} />
 				</Appbar.Header>
@@ -408,7 +416,7 @@ export default function FormulaDetailScreen() {
 
 	if (error) {
 		return (
-			<Surface style={styles.container}>
+			<Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
 				<Card style={styles.errorCard}>
 					<Card.Content>
 						<Text style={styles.errorText}>{error}</Text>
@@ -423,7 +431,7 @@ export default function FormulaDetailScreen() {
 
 	if (!formula) {
 		return (
-			<Surface style={styles.container}>
+			<Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
 				<Card style={styles.errorCard}>
 					<Card.Content>
 						<Text>No se encontró la fórmula.</Text>
@@ -437,9 +445,9 @@ export default function FormulaDetailScreen() {
 	}
 
 	return (
-		<Surface style={styles.container}>
+		<Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
 			<Animated.View style={animatedHeaderStyle}>
-				<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+				<Appbar.Header mode="center-aligned" style={[styles.appBar, { backgroundColor: theme.colors.background }]}>
 					<Appbar.BackAction onPress={() => router.back()} accessibilityLabel="Volver" />
 					<Appbar.Content title={capitalizeFirstLetter(formula.nombreColor)} titleStyle={styles.appBarTitle} />
 					<Appbar.Action icon="share-variant" onPress={handleShareFormula} accessibilityLabel="Compartir fórmula en PDF" />
@@ -451,26 +459,50 @@ export default function FormulaDetailScreen() {
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 			>
-				<Card style={styles.formulaCard}>
+				<Card
+					style={[
+						styles.formulaCard,
+						{
+							backgroundColor: theme.colors.surface,
+							borderColor: theme.colors.outlineVariant,
+						},
+					]}
+					mode="elevated"
+					elevation={0}
+				>
 					<Card.Content>
 						<View style={styles.headerRow}>
+							<View
+								style={[
+									styles.colorSwatch,
+									{
+										backgroundColor: getColorSwatch(formula.nombreColor),
+										borderColor: theme.colors.outlineVariant,
+									},
+								]}
+							/>
 							<View style={styles.headerLeft}>
-								<Text variant="headlineSmall" style={styles.sectionTitle}>
+								<Text variant="titleLarge" style={styles.sectionTitle}>
 									Ingredientes
 								</Text>
-								<Text variant="bodyMedium" style={styles.headerSubtitle}>
-									{formula.ingredientes?.length || 0} ingredientes en total
+								<Text variant="bodyMedium" style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+									{formula.ingredientes?.length || 0} componentes en la mezcla
 								</Text>
 							</View>
 							<View style={styles.headerRight}>
-								<View style={styles.weightContainer}>
+								<View
+									style={[
+										styles.weightContainer,
+										{ backgroundColor: theme.colors.primaryContainer },
+									]}
+								>
 									<IconButton 
 										icon="scale" 
-										size={24} 
-										iconColor={theme.colors.primary}
+										size={18} 
+										iconColor={theme.colors.onPrimaryContainer}
 										style={styles.weightIcon}
 									/>
-									<Text variant="titleLarge" style={[styles.weightText, { color: theme.colors.primary }]}>
+									<Text variant="titleMedium" style={[styles.weightText, { color: theme.colors.onPrimaryContainer }]}>
 										{calculateTotalWeight(formula.ingredientes || []).toFixed(2)} kg
 									</Text>
 								</View>
@@ -482,7 +514,7 @@ export default function FormulaDetailScreen() {
 				{formula.ingredientes && formula.ingredientes.length > 0 ? (
 					formula.ingredientes.map((ingrediente: Ingrediente, index: number) => (
 						<IngredientCard
-							key={`${formula?.id || "formula"}-${index}`}
+							key={`${formula?.id || "formula"}-${ingrediente.nombre}-${index}`}
 							ingrediente={ingrediente}
 							index={index}
 							onPress={() => handleIngredientPress(ingrediente, index)}
@@ -513,12 +545,29 @@ export default function FormulaDetailScreen() {
 
 			{/* Dialog para editar ingrediente */}
 			<Portal>
-				<Dialog visible={editDialogVisible} onDismiss={() => setEditDialogVisible(false)} style={styles.dialogContent}>
-					<Dialog.Title>Editar Ingrediente</Dialog.Title>
+				<Dialog
+					visible={editDialogVisible}
+					onDismiss={() => setEditDialogVisible(false)}
+					style={[styles.dialogContent, { backgroundColor: theme.colors.surface }]}
+				>
+					<View style={styles.dialogHeaderRow}>
+						<Dialog.Title style={styles.dialogTitleInline}>
+							Editar Ingrediente
+						</Dialog.Title>
+						<IconButton
+							icon="trash-can-outline"
+							iconColor={theme.colors.error}
+							size={22}
+							onPress={handleConfirmDelete}
+							accessibilityLabel="Eliminar ingrediente"
+						/>
+					</View>
 					<Dialog.Content>
 						<TextInput
 							label="Nombre"
-							defaultValue={editedIngredient.nombre}
+							mode="outlined"
+							outlineStyle={styles.inputOutline}
+							value={editedIngredient.nombre}
 							onChangeText={(text) =>
 								setEditedIngredient({ ...editedIngredient, nombre: text })
 							}
@@ -526,6 +575,8 @@ export default function FormulaDetailScreen() {
 						/>
 						<TextInput
 							label="Cantidad"
+							mode="outlined"
+							outlineStyle={styles.inputOutline}
 							defaultValue={editedIngredient.cantidad?.toString() || ""}
 							onChangeText={(text) => {
 								const num = Number.parseFloat(text);
@@ -537,7 +588,7 @@ export default function FormulaDetailScreen() {
 							keyboardType="numeric"
 							style={styles.dialogInput}
 						/>
-						<Text variant="labelMedium" style={styles.unitLabel}>Unidad:</Text>
+						<Text variant="labelMedium" style={styles.unitLabel}>Unidad de medida</Text>
 						<SegmentedButtons
 							value={editedIngredient.unidad || "gr"}
 							onValueChange={(value) =>
@@ -552,43 +603,87 @@ export default function FormulaDetailScreen() {
 						/>
 					</Dialog.Content>
 					<Dialog.Actions style={styles.dialogActions}>
-						<Button onPress={() => setEditDialogVisible(false)}>
+						<Button mode="text" onPress={() => setEditDialogVisible(false)}>
 							Cancelar
 						</Button>
-						<Button mode="contained" buttonColor={theme.colors.error} onPress={handleConfirmDelete}>
-							Eliminar
-						</Button>
-						<Button mode="contained" onPress={handleUpdateIngredient}>
+						<Button
+							mode="contained"
+							icon="check"
+							style={styles.dialogPrimaryBtn}
+							onPress={handleUpdateIngredient}
+						>
 							Guardar
 						</Button>
 					</Dialog.Actions>
 				</Dialog>
 
 				{/* Dialog para confirmar eliminación */}
-				<Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)} style={styles.dialogContent}>
-					<Dialog.Title>Confirmar Eliminación</Dialog.Title>
+				<Dialog
+					visible={deleteDialogVisible}
+					onDismiss={() => setDeleteDialogVisible(false)}
+					style={[styles.dialogContent, { backgroundColor: theme.colors.surface }]}
+				>
+					<Dialog.Icon icon="trash-can-outline" color={theme.colors.error} size={32} />
+					<Dialog.Title style={styles.dialogTitleCentered}>
+						Eliminar ingrediente
+					</Dialog.Title>
 					<Dialog.Content>
-						<Text variant="bodyLarge">
-							¿Estás seguro de que deseas eliminar el ingrediente "{editedIngredient.nombre}"?
+						<View
+							style={[
+								styles.dialogPreviewChip,
+								{
+									backgroundColor: theme.colors.elevation.level2,
+									borderColor: theme.colors.outlineVariant,
+								},
+							]}
+						>
+							<Text variant="titleMedium" style={{ fontWeight: "700" }}>
+								{capitalizeFirstLetter(editedIngredient.nombre)}
+							</Text>
+							<Text
+								variant="bodyMedium"
+								style={{ marginLeft: 8, color: theme.colors.primary, fontWeight: "600" }}
+							>
+								({editedIngredient.cantidad} {editedIngredient.unidad})
+							</Text>
+						</View>
+						<Text
+							variant="bodyMedium"
+							style={{ textAlign: "center", color: theme.colors.onSurfaceVariant }}
+						>
+							¿Seguro que deseas quitar este ingrediente de la fórmula?
 						</Text>
 					</Dialog.Content>
 					<Dialog.Actions style={styles.dialogActions}>
-						<Button onPress={() => setDeleteDialogVisible(false)}>
+						<Button mode="text" onPress={() => setDeleteDialogVisible(false)}>
 							Cancelar
 						</Button>
-						<Button mode="contained" buttonColor={theme.colors.error} onPress={handleDeleteIngredient}>
+						<Button
+							mode="contained"
+							icon="trash-can-outline"
+							buttonColor={theme.colors.error}
+							textColor={theme.colors.onError}
+							style={styles.dialogPrimaryBtn}
+							onPress={handleDeleteIngredient}
+						>
 							Eliminar
 						</Button>
 					</Dialog.Actions>
 				</Dialog>
 
 				{/* Dialog para añadir ingrediente */}
-				<Dialog visible={addDialogVisible} onDismiss={() => setAddDialogVisible(false)} style={styles.dialogContent}>
-					<Dialog.Title>Nuevo Ingrediente</Dialog.Title>
+				<Dialog
+					visible={addDialogVisible}
+					onDismiss={() => setAddDialogVisible(false)}
+					style={[styles.dialogContent, { backgroundColor: theme.colors.surface }]}
+				>
+					<Dialog.Title style={{ fontWeight: "700" }}>Nuevo Ingrediente</Dialog.Title>
 					<Dialog.Content>
 						<TextInput
-							label="Nombre"
-							defaultValue={newIngredient.nombre}
+							label="Nombre del ingrediente"
+							mode="outlined"
+							outlineStyle={styles.inputOutline}
+							value={newIngredient.nombre}
 							onChangeText={(text) =>
 								setNewIngredient({ ...newIngredient, nombre: text })
 							}
@@ -596,7 +691,9 @@ export default function FormulaDetailScreen() {
 						/>
 						<TextInput
 							label="Cantidad"
-							defaultValue={newIngredient.cantidad}
+							mode="outlined"
+							outlineStyle={styles.inputOutline}
+							value={newIngredient.cantidad}
 							onChangeText={(text) => {
 								const cleanText = text.replace(/[^\d.]/g, '');
 								setNewIngredient({ ...newIngredient, cantidad: cleanText });
@@ -604,7 +701,7 @@ export default function FormulaDetailScreen() {
 							keyboardType="numeric"
 							style={styles.dialogInput}
 						/>
-						<Text variant="labelMedium" style={styles.unitLabel}>Unidad:</Text>
+						<Text variant="labelMedium" style={styles.unitLabel}>Unidad de medida</Text>
 						<SegmentedButtons
 							value={newIngredient.unidad}
 							onValueChange={(value) =>
@@ -619,11 +716,16 @@ export default function FormulaDetailScreen() {
 						/>
 					</Dialog.Content>
 					<Dialog.Actions style={styles.dialogActions}>
-						<Button onPress={() => setAddDialogVisible(false)}>
+						<Button mode="text" onPress={() => setAddDialogVisible(false)}>
 							Cancelar
 						</Button>
-						<Button mode="contained" onPress={handleSaveNewIngredient}>
-							Guardar
+						<Button
+							mode="contained"
+							icon="plus"
+							style={styles.dialogPrimaryBtn}
+							onPress={handleSaveNewIngredient}
+						>
+							Añadir
 						</Button>
 					</Dialog.Actions>
 				</Dialog>
@@ -669,11 +771,19 @@ const styles = StyleSheet.create({
 	},
 	formulaCard: {
 		marginBottom: 16,
-		borderRadius: 12,
+		borderRadius: BorderRadius.lg,
+		borderWidth: 1,
+	},
+	colorSwatch: {
+		width: 22,
+		height: 22,
+		borderRadius: 11,
+		borderWidth: 1,
+		marginRight: 12,
 	},
 	sectionTitle: {
-		fontWeight: "bold",
-		marginBottom: Spacing.xs,
+		fontWeight: "700",
+		marginBottom: 2,
 	},
 	headerSubtitle: {},
 	headerRow: {
@@ -690,20 +800,26 @@ const styles = StyleSheet.create({
 	weightContainer: {
 		flexDirection: 'row',
 		alignItems: 'center',
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: BorderRadius.xl,
 	},
 	weightIcon: {
 		margin: 0,
-		marginRight: Spacing.xs,
+		width: 22,
+		height: 22,
+		marginRight: 4,
 	},
 	weightText: {
-		fontWeight: 'bold',
+		fontWeight: '700',
 	},
 	ingredientsList: {
 		marginBottom: Spacing.sm,
 	},
 	ingredientsCard: {
-		marginBottom: 8,
-		borderRadius: 12,
+		marginBottom: 10,
+		borderRadius: BorderRadius.lg,
+		borderWidth: 1,
 	},
 	ingredientsContent: {
 		flexDirection: "row",
@@ -722,19 +838,19 @@ const styles = StyleSheet.create({
 	nameSection: {
 		flex: 1,
 		justifyContent: 'center',
+		marginRight: Spacing.sm,
 	},
 	quantitySection: {
-		flex: 1,
 		alignItems: 'flex-end',
 		justifyContent: 'center',
 	},
 	buttonSection: {
-		flex: 1,
 		alignItems: 'flex-end',
 		justifyContent: 'center',
 	},
 	ingredientsName: {
 		// Texto del nombre del ingrediente
+		fontWeight: '600',
 	},
 	ingredientsQuantity: {
 		// Se aplicará color del tema en el componente
@@ -743,8 +859,12 @@ const styles = StyleSheet.create({
 	quantityContainer: {
 		flexDirection: 'row',
 		alignItems: 'baseline',
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: BorderRadius.xl,
 	},
 	quantityNumber: {
+		fontWeight: '700',
 		marginRight: 4,
 	},
 	quantityUnit: {
@@ -782,19 +902,51 @@ const styles = StyleSheet.create({
 		bottom: Spacing.md,
 	},
 	dialogInput: {
-		marginBottom: Spacing.md,
+		marginBottom: Spacing.sm,
+	},
+	inputOutline: {
+		borderRadius: BorderRadius.md,
 	},
 	unitLabel: {
 		marginBottom: Spacing.sm,
 		marginTop: Spacing.xs,
 	},
 	segmentedButtons: {
-		marginBottom: Spacing.sm,
+		marginBottom: Spacing.xs,
 	},
 	dialogContent: {
-		padding: Spacing.md,
+		borderRadius: BorderRadius.xl,
+	},
+	dialogHeaderRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingRight: Spacing.sm,
+	},
+	dialogTitleInline: {
+		fontWeight: "700",
+		flex: 1,
+	},
+	dialogTitleCentered: {
+		fontWeight: "700",
+		textAlign: "center",
+	},
+	dialogPreviewChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		paddingVertical: 10,
+		paddingHorizontal: 14,
+		borderRadius: BorderRadius.md,
+		borderWidth: 1,
+		marginBottom: Spacing.md,
 	},
 	dialogActions: {
-		padding: Spacing.md,
+		paddingHorizontal: Spacing.lg,
+		paddingBottom: Spacing.md,
+		gap: Spacing.xs,
+	},
+	dialogPrimaryBtn: {
+		borderRadius: BorderRadius.lg,
 	},
 });

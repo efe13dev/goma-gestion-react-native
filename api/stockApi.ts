@@ -43,7 +43,7 @@ export const addColor = async (color: RubberColor): Promise<void> => {
   try {
     const colorAPI = mapLocalToApi(color);
     
-    const response = await fetch(`${API_URL}${"/stock"}`, {
+    const response = await fetchWithTimeout(`${API_URL}${"/stock"}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export const updateColor = async (color: RubberColor): Promise<void> => {
   try {
     const colorAPI = mapLocalToApi(color);
     
-    const response = await fetch(`${API_URL}${"/stock"}/${encodeURIComponent(color.name)}`, {
+    const response = await fetchWithTimeout(`${API_URL}${"/stock"}/${encodeURIComponent(color.name)}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export const updateColor = async (color: RubberColor): Promise<void> => {
 // Delete a color
 export const deleteColor = async (colorName: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}${"/stock"}/${encodeURIComponent(colorName)}`, {
+    const response = await fetchWithTimeout(`${API_URL}${"/stock"}/${encodeURIComponent(colorName)}`, {
       method: 'DELETE',
     });
     

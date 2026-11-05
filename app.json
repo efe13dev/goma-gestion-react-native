@@ -2,9 +2,9 @@
 	"expo": {
 		"name": "Goma",
 		"slug": "goma-gestion-react-native",
-    	"version": "2.4.0",
+    	"version": "2.5.0",
 		"orientation": "portrait",
-		"icon": "./assets/images/ic_launcher.png",
+		"icon": "./assets/images/icon.png",
 		"scheme": "myapp",
 		"userInterfaceStyle": "automatic",
 		"newArchEnabled": true,
@@ -17,7 +17,7 @@
 				"backgroundColor": "#ffffff"
 			},
 			"package": "com.eefee.gomagestionreactnative",
-    		"versionCode": 9
+    		"versionCode": 10
 		},
 		"web": {
 			"bundler": "metro",
@@ -51,7 +51,7 @@
 			"typedRoutes": true
 		},
 		"extra": {
-			"apiUrl": "https://api-rubber-hono.onrender.com",
+			"apiUrl": "https://api-rubber-hono.efe13dev.workers.dev",
 			"router": {
 				"origin": false
 			},

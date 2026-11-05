@@ -1,6 +1,7 @@
 import { addFormula, getFormulaNames } from "@/api/formulasApi";
 import AnimatedListItem from "@/components/AnimatedListItem";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
+import { getColorSwatch } from "@/types/colors";
 import { showError, showSuccess } from "@/utils/toast";
 import { calculateTotalWeight } from "@/utils/weight";
 import { useNavigation } from "@react-navigation/native";
@@ -67,13 +68,13 @@ export default function NuevaFormulaScreen() {
         navigation.setOptions({
             headerBackTitle: "Volver",
             header: () => (
-                <Appbar.Header elevated mode="center-aligned">
+                <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.background }}>
                     <Appbar.BackAction onPress={() => router.back()} accessibilityLabel="Volver" />
-                    <Appbar.Content title="Nueva Fórmula" />
+                    <Appbar.Content title="Nueva Fórmula" titleStyle={{ fontWeight: "bold" }} />
                 </Appbar.Header>
             ),
         });
-    }, [navigation, router]);
+    }, [navigation, router, theme.colors.background]);
 
     const parsedCantidad = parseCantidad(cantidadDraft.trim());
     const isCantidadValid = !!parsedCantidad && parsedCantidad > 0;
@@ -256,21 +257,37 @@ export default function NuevaFormulaScreen() {
                     ingrediente. No se desplaza al crecer la lista, lo que
                     permite añadir ingredientes en ráfaga sin hacer scroll. */}
                 <View style={styles.fixedTop}>
-                    <TextInput
-                        label="Nombre del color"
-                        value={nombreColor}
-                        onChangeText={setNombreColor}
-                        mode="outlined"
-                        placeholder="Ejemplo: Azul cielo"
-                        style={styles.input}
-                    />
+                    <View style={styles.colorInputRow}>
+                        <View
+                            style={[
+                                styles.colorSwatchPreview,
+                                {
+                                    backgroundColor: getColorSwatch(nombreColor || "gris"),
+                                    borderColor: theme.colors.outlineVariant,
+                                },
+                            ]}
+                        />
+                        <TextInput
+                            label="Nombre del color"
+                            value={nombreColor}
+                            onChangeText={setNombreColor}
+                            mode="outlined"
+                            outlineStyle={styles.inputOutline}
+                            placeholder="Ejemplo: Azul cielo"
+                            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                        />
+                    </View>
 
                     <Surface
                         style={[
                             styles.addIngredientSection,
-                            { backgroundColor: theme.colors.elevation.level1 },
+                            {
+                                backgroundColor: theme.colors.surface,
+                                borderColor: theme.colors.outlineVariant,
+                                borderWidth: 1,
+                            },
                         ]}
-                        elevation={1}
+                        elevation={0}
                     >
                         <View style={styles.formRow}>
                             <TextInput
@@ -279,6 +296,7 @@ export default function NuevaFormulaScreen() {
                                 value={nombreDraft}
                                 onChangeText={setNombreDraft}
                                 mode="outlined"
+                                outlineStyle={styles.inputOutline}
                                 dense
                                 style={[styles.input, { flex: 1.6, marginRight: Spacing.sm }]}
                                 returnKeyType="next"
@@ -292,6 +310,7 @@ export default function NuevaFormulaScreen() {
                                 value={cantidadDraft}
                                 onChangeText={setCantidadDraft}
                                 mode="outlined"
+                                outlineStyle={styles.inputOutline}
                                 dense
                                 keyboardType={Platform.OS === "ios" ? "decimal-pad" : "numeric"}
                                 inputMode="decimal"
@@ -376,7 +395,7 @@ export default function NuevaFormulaScreen() {
 
                 {/* Barra inferior fija: resumen + guardar */}
                 <Divider />
-                <View style={styles.bottomBar}>
+                <View style={[styles.bottomBar, { backgroundColor: theme.colors.surface }]}>
                     <View style={styles.summary}>
                         <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
                             {ingredientes.length} ingrediente{ingredientes.length === 1 ? "" : "s"}
@@ -408,6 +427,22 @@ const styles = StyleSheet.create({
     fixedTop: {
         padding: Spacing.md,
         paddingBottom: Spacing.sm,
+    },
+    colorInputRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: Spacing.sm,
+    },
+    colorSwatchPreview: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginRight: 12,
+        marginTop: 4,
+    },
+    inputOutline: {
+        borderRadius: BorderRadius.md,
     },
     input: {
         marginBottom: Spacing.sm,

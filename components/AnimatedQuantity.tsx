@@ -17,7 +17,7 @@ const FLASH_DECREASE = '#C62828';
 
 interface AnimatedQuantityProps {
   quantity: number;
-  variant?: 'headlineSmall' | 'titleMedium' | 'bodyLarge';
+  variant?: 'headlineSmall' | 'titleLarge' | 'titleMedium' | 'bodyLarge';
   style?: any;
 }
 

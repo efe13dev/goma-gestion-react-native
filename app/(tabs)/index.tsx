@@ -10,7 +10,7 @@ import SkeletonList from "@/components/SkeletonCard";
 import * as Haptics from "expo-haptics";
 import { BorderRadius, Spacing } from "@/constants/Spacing";
 import { useTheme as useCustomTheme } from "@/contexts/ThemeContext";
-import type { RubberColor } from "@/types/colors";
+import { formatColorName, getColorSwatch, type RubberColor } from "@/types/colors";
 import { showError, showSuccess } from "@/utils/toast";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSplashDone } from "@/components/AnimatedSplash";
@@ -57,7 +57,6 @@ export default function HomeScreen() {
 	const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 	const [colorToDelete, setColorToDelete] = useState<RubberColor | null>(null);
 	const splashDone = useSplashDone();
-	const [itemsReady, setItemsReady] = useState(false);
 
 	// Animaciones de entrada
 	const {
@@ -66,7 +65,7 @@ export default function HomeScreen() {
 		headerStyle: animatedHeaderStyle,
 		contentStyle: animatedContentStyle,
 		fabStyle: animatedFabStyle,
-	} = useEntranceAnimation(() => setItemsReady(true));
+	} = useEntranceAnimation();
 
 	const quantityDebounceTimers = useRef<
 		Record<string, ReturnType<typeof setTimeout> | undefined>
@@ -292,49 +291,90 @@ export default function HomeScreen() {
 	// Renderizar cada elemento de la lista con Material Design 3
 	const renderItem = useCallback(
 		({ item, index }: { item: RubberColor; index: number }) => {
+			const isOutOfStock = item.quantity === 0;
 			return (
 				<AnimatedListItem index={index}>
 				<Card
-					style={styles.colorCard}
+					style={[
+						styles.colorCard,
+						{
+							backgroundColor: theme.colors.surface,
+							borderColor: theme.colors.outlineVariant,
+						},
+					]}
 					mode="elevated"
-					elevation={1}
+					elevation={0}
+					onLongPress={() => confirmDeleteColor(item)}
 				>
-					<Card.Content>
-						<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-							<View style={{ flex: 1 }}>
-								<Text variant="titleMedium" style={{ fontWeight: '600', marginBottom: 4 }}>
-									{item.name}
+					<Card.Content style={styles.cardContent}>
+						<View style={styles.cardRow}>
+							<View
+								style={[
+									styles.colorSwatch,
+									{
+										backgroundColor: getColorSwatch(item.name),
+										borderColor: theme.colors.outlineVariant,
+									},
+								]}
+							/>
+							<View style={styles.colorInfo}>
+								<Text variant="titleMedium" style={styles.colorName}>
+									{formatColorName(item.name)}
+								</Text>
+								<Text
+									variant="bodySmall"
+									style={{
+										color: isOutOfStock
+											? theme.colors.error
+											: theme.colors.onSurfaceVariant,
+										fontWeight: isOutOfStock ? "600" : "400",
+									}}
+								>
+									{isOutOfStock
+										? "Sin stock disponible"
+										: `${item.quantity} ${item.quantity === 1 ? "palot disponible" : "palots disponibles"}`}
 								</Text>
 							</View>
-							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+							<View style={styles.actionButtons}>
+								<View
+									style={[
+										styles.stepperPill,
+										{ backgroundColor: theme.colors.elevation.level3 },
+									]}
+								>
+									<IconButton
+										icon="minus"
+										size={18}
+										style={styles.stepperBtn}
+										onPress={() => adjustQuantity(item.id, -1)}
+										disabled={item.quantity === 0}
+										accessibilityLabel={`Restar una unidad de ${item.name}`}
+									/>
+									<AnimatedQuantity 
+										quantity={item.quantity} 
+										variant="titleLarge"
+										style={{
+											minWidth: 32,
+											textAlign: 'center',
+											fontWeight: '700',
+											color: isOutOfStock ? theme.colors.error : theme.colors.onSurface,
+										}}
+									/>
+									<IconButton
+										icon="plus"
+										size={18}
+										style={styles.stepperBtn}
+										onPress={() => adjustQuantity(item.id, 1)}
+										iconColor={theme.colors.primary}
+										accessibilityLabel={`Sumar una unidad de ${item.name}`}
+									/>
+								</View>
 								<IconButton
-									icon="minus-circle"
-									size={24}
-									onPress={() => adjustQuantity(item.id, -1)}
-									mode="contained-tonal"
-									accessibilityLabel={`Restar una unidad de ${item.name}`}
-								/>
-								<AnimatedQuantity 
-									quantity={item.quantity} 
-									variant="headlineSmall"
-									style={{
-										marginHorizontal: 8,
-										fontWeight: 'bold',
-										color: item.quantity === 0 ? theme.colors.error : theme.colors.onSurface,
-									}}
-								/>
-								<IconButton
-									icon="plus-circle"
-									size={24}
-									onPress={() => adjustQuantity(item.id, 1)}
-									mode="contained-tonal"
-									accessibilityLabel={`Sumar una unidad de ${item.name}`}
-								/>
-								<IconButton
-									icon="delete"
-									size={24}
+									icon="trash-can-outline"
+									size={20}
+									style={styles.deleteBtn}
 									onPress={() => confirmDeleteColor(item)}
-									iconColor={theme.colors.error}
+									iconColor={theme.colors.onSurfaceVariant}
 									accessibilityLabel={`Eliminar ${item.name}`}
 								/>
 							</View>
@@ -347,17 +387,20 @@ export default function HomeScreen() {
 		[adjustQuantity, confirmDeleteColor, theme],
 	);
 
+	const totalUnits = inventory.reduce((sum, item) => sum + item.quantity, 0);
+	const outOfStockCount = inventory.filter((item) => item.quantity === 0).length;
+
 	return (
-		<Surface style={styles.container}>
+		<Surface style={[styles.container, { backgroundColor: theme.colors.background }]}>
 				{/* Appbar con Material Design 3 */}
 				<Animated.View style={animatedHeaderStyle}>
-					<Appbar.Header elevated mode="center-aligned" style={styles.appBar}>
+					<Appbar.Header mode="center-aligned" style={[styles.appBar, { backgroundColor: theme.colors.background }]}>
 					<Appbar.Action 
 						icon={themeMode === 'auto' ? 'theme-light-dark' : themeMode === 'dark' ? 'weather-night' : 'white-balance-sunny'} 
 						onPress={toggleTheme}
 						accessibilityLabel="Cambiar tema"
 					/>
-					<Appbar.Content title="Stock" titleStyle={styles.appBarTitle} />
+					<Appbar.Content title="Inventario" titleStyle={styles.appBarTitle} />
 					{refreshing ? (
 						<View style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}>
 							<PaperActivityIndicator animating size={20} />
@@ -394,7 +437,7 @@ export default function HomeScreen() {
 							</Card.Actions>
 						</Card>
 					</ScrollView>
-			) : isLoading || !itemsReady ? (
+			) : isLoading ? (
 				<SkeletonList count={6} />
 				) : (
 					<Animated.View style={[{ flex: 1 }, animatedContentStyle]}>
@@ -403,18 +446,35 @@ export default function HomeScreen() {
 							keyExtractor={(item) => item.id}
 							renderItem={renderItem}
 							ListHeaderComponent={
-								<Surface style={styles.headerCard} elevation={2}>
-								<Image
-									source={require("../../assets/images/palot.png")}
-									style={styles.headerImage}
-									resizeMode="contain"
-								/>
+								<Surface
+									style={[
+										styles.headerCard,
+										{
+											backgroundColor: theme.colors.surface,
+											borderColor: theme.colors.outlineVariant,
+										},
+									]}
+									elevation={0}
+								>
+								<View
+									style={[
+										styles.headerIconBox,
+										{ backgroundColor: theme.colors.primaryContainer },
+									]}
+								>
+									<Image
+										source={require("../../assets/images/palot.png")}
+										style={styles.headerImage}
+										resizeMode="contain"
+									/>
+								</View>
 								<View style={styles.headerTextContainer}>
-									<Text variant="headlineMedium" style={styles.headerTitle}>
-										Stock
+									<Text variant="titleLarge" style={styles.headerTitle}>
+										Resumen de Stock
 									</Text>
 									<Text variant="bodyMedium" style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-										{inventory.length} colores disponibles
+										{totalUnits} palots · {inventory.length} colores
+										{outOfStockCount > 0 ? ` · ${outOfStockCount} agotado${outOfStockCount > 1 ? "s" : ""}` : ""}
 									</Text>
 								</View>
 							</Surface>
@@ -457,48 +517,146 @@ export default function HomeScreen() {
 
 				{/* Dialog para agregar color */}
 				<Portal>
-					<Dialog visible={dialogVisible} onDismiss={closeDialog}>
-						<Dialog.Title>Agregar Nuevo Color</Dialog.Title>
+					<Dialog
+						visible={dialogVisible}
+						onDismiss={closeDialog}
+						style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
+					>
+						<Dialog.Title style={styles.dialogTitle}>Nuevo Color</Dialog.Title>
 						<Dialog.Content>
+							<View
+								style={[
+									styles.dialogPreviewChip,
+									{
+										backgroundColor: theme.colors.elevation.level2,
+										borderColor: theme.colors.outlineVariant,
+									},
+								]}
+							>
+								<View
+									style={[
+										styles.colorSwatch,
+										{
+											backgroundColor: getColorSwatch(newColorName || "gris"),
+											borderColor: theme.colors.outlineVariant,
+										},
+									]}
+								/>
+								<Text
+									variant="bodyMedium"
+									style={{
+										marginLeft: 10,
+										color: newColorName.trim()
+											? theme.colors.onSurface
+											: theme.colors.onSurfaceVariant,
+										fontWeight: "600",
+									}}
+								>
+									{newColorName.trim()
+										? formatColorName(newColorName.trim())
+										: "Vista previa del color"}
+								</Text>
+							</View>
 							<TextInput
 								label="Nombre del color"
-								defaultValue={newColorName}
+								value={newColorName}
 								onChangeText={setNewColorName}
 								mode="outlined"
+								outlineStyle={styles.inputOutline}
 								style={styles.dialogInput}
 							/>
 							<TextInput
-								label="Cantidad inicial"
-								defaultValue={newColorQuantity}
+								label="Cantidad inicial (palots)"
+								value={newColorQuantity}
 								onChangeText={setNewColorQuantity}
 								keyboardType="numeric"
 								mode="outlined"
+								outlineStyle={styles.inputOutline}
 								style={styles.dialogInput}
 							/>
 						</Dialog.Content>
-						<Dialog.Actions>
-							<Button onPress={closeDialog}>
+						<Dialog.Actions style={styles.dialogActions}>
+							<Button mode="text" onPress={closeDialog}>
 								Cancelar
 							</Button>
-							<Button mode="contained" onPress={handleAddColor}>
+							<Button
+								mode="contained"
+								icon="plus"
+								style={styles.dialogPrimaryBtn}
+								onPress={handleAddColor}
+							>
 								Agregar
 							</Button>
 						</Dialog.Actions>
 					</Dialog>
 
 					{/* Dialog para confirmar eliminación */}
-					<Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
-						<Dialog.Title>Confirmar Eliminación</Dialog.Title>
+					<Dialog
+						visible={deleteDialogVisible}
+						onDismiss={() => setDeleteDialogVisible(false)}
+						style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
+					>
+						<Dialog.Icon icon="trash-can-outline" color={theme.colors.error} size={32} />
+						<Dialog.Title style={styles.dialogTitleCentered}>
+							Eliminar color
+						</Dialog.Title>
 						<Dialog.Content>
-							<Text variant="bodyLarge">
-								¿Está seguro que desea eliminar {colorToDelete?.name}?
+							{colorToDelete ? (
+								<View
+									style={[
+										styles.dialogPreviewChip,
+										{
+											backgroundColor: theme.colors.elevation.level2,
+											borderColor: theme.colors.outlineVariant,
+											justifyContent: "center",
+										},
+									]}
+								>
+									<View
+										style={[
+											styles.colorSwatch,
+											{
+												backgroundColor: getColorSwatch(colorToDelete.name),
+												borderColor: theme.colors.outlineVariant,
+											},
+										]}
+									/>
+									<Text
+										variant="titleMedium"
+										style={{ marginLeft: 10, fontWeight: "700" }}
+									>
+										{formatColorName(colorToDelete.name)}
+									</Text>
+									<Text
+										variant="bodyMedium"
+										style={{ marginLeft: 8, color: theme.colors.onSurfaceVariant }}
+									>
+										({colorToDelete.quantity} palots)
+									</Text>
+								</View>
+							) : null}
+							<Text
+								variant="bodyMedium"
+								style={{
+									textAlign: "center",
+									color: theme.colors.onSurfaceVariant,
+								}}
+							>
+								Esta acción quitará el color del inventario de forma permanente.
 							</Text>
 						</Dialog.Content>
-						<Dialog.Actions>
-							<Button onPress={() => setDeleteDialogVisible(false)}>
+						<Dialog.Actions style={styles.dialogActions}>
+							<Button mode="text" onPress={() => setDeleteDialogVisible(false)}>
 								Cancelar
 							</Button>
-							<Button mode="contained" buttonColor={theme.colors.error} onPress={handleConfirmDelete}>
+							<Button
+								mode="contained"
+								icon="trash-can-outline"
+								buttonColor={theme.colors.error}
+								textColor={theme.colors.onError}
+								style={styles.dialogPrimaryBtn}
+								onPress={handleConfirmDelete}
+							>
 								Eliminar
 							</Button>
 						</Dialog.Actions>
@@ -522,50 +680,69 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	headerCard: {
-		margin: Spacing.md,
+		marginHorizontal: Spacing.md,
+		marginTop: Spacing.xs,
+		marginBottom: Spacing.md,
 		padding: Spacing.md,
 		borderRadius: BorderRadius.lg,
+		borderWidth: 1,
 		flexDirection: 'row',
 		alignItems: 'center',
 	},
-	headerImage: {
-		width: 80,
-		height: 80,
+	headerIconBox: {
+		width: 56,
+		height: 56,
+		borderRadius: BorderRadius.md,
+		alignItems: 'center',
+		justifyContent: 'center',
 		marginRight: Spacing.md,
+	},
+	headerImage: {
+		width: 40,
+		height: 40,
 	},
 	headerTextContainer: {
 		flex: 1,
 	},
 	headerTitle: {
-		fontWeight: 'bold',
-		marginBottom: Spacing.xs,
+		fontWeight: '700',
+		marginBottom: 2,
 	},
 	headerSubtitle: {
 		// Se aplicará color del tema en el componente
 	},
 	colorCard: {
 		marginHorizontal: Spacing.md,
-		marginVertical: Spacing.sm,
-		borderRadius: BorderRadius.md,
+		marginVertical: 5,
+		borderRadius: BorderRadius.lg,
+		borderWidth: 1,
 	},
 	activeCard: {},
 	cardContent: {
-		paddingVertical: Spacing.sm,
+		paddingVertical: 12,
+		paddingHorizontal: Spacing.md,
 	},
 	cardRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
+	},
+	colorSwatch: {
+		width: 18,
+		height: 18,
+		borderRadius: 9,
+		borderWidth: 1,
 	},
 	dragIcon: {
 		marginLeft: -Spacing.sm,
 	},
 	colorInfo: {
 		flex: 1,
-		marginLeft: Spacing.sm,
+		marginLeft: 12,
+		marginRight: Spacing.sm,
 	},
 	colorName: {
 		fontWeight: '600',
-		marginBottom: Spacing.xs,
+		marginBottom: 2,
 	},
 	quantityChip: {
 		marginTop: Spacing.xs,
@@ -573,6 +750,22 @@ const styles = StyleSheet.create({
 	actionButtons: {
 		flexDirection: 'row',
 		alignItems: 'center',
+	},
+	stepperPill: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		borderRadius: BorderRadius.xl,
+		paddingHorizontal: 2,
+		paddingVertical: 2,
+	},
+	stepperBtn: {
+		margin: 0,
+		width: 34,
+		height: 34,
+	},
+	deleteBtn: {
+		margin: 0,
+		marginLeft: 4,
 	},
 	loadingContainer: {
 		flex: 1,
@@ -619,7 +812,37 @@ const styles = StyleSheet.create({
 	fab: {
 		// El FAB ahora está dentro del contenedor animado
 	},
-	dialogInput: {
+	dialog: {
+		borderRadius: BorderRadius.xl,
+	},
+	dialogTitle: {
+		fontWeight: '700',
+	},
+	dialogTitleCentered: {
+		fontWeight: '700',
+		textAlign: 'center',
+	},
+	dialogPreviewChip: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		paddingVertical: 10,
+		paddingHorizontal: 14,
+		borderRadius: BorderRadius.md,
+		borderWidth: 1,
 		marginBottom: Spacing.md,
+	},
+	inputOutline: {
+		borderRadius: BorderRadius.md,
+	},
+	dialogInput: {
+		marginBottom: Spacing.sm,
+	},
+	dialogActions: {
+		paddingHorizontal: Spacing.lg,
+		paddingBottom: Spacing.md,
+		gap: Spacing.xs,
+	},
+	dialogPrimaryBtn: {
+		borderRadius: BorderRadius.lg,
 	},
 });

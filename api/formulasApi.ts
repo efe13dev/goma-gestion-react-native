@@ -131,7 +131,7 @@ export const addFormula = async (formula: Formula): Promise<boolean> => {
 	try {
 		const apiFormula = mapLocalToApi(formula);
 
-		const response = await fetch(`${API_URL}${"/formulas"}`, {
+		const response = await fetchWithTimeout(`${API_URL}${"/formulas"}`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -165,7 +165,7 @@ export const updateFormula = async (
 		const apiFormula = mapLocalToApi(formula);
 		const resolvedName = resolveFormulaName(id, name);
 
-		const response = await fetch(
+		const response = await fetchWithTimeout(
 			`${API_URL}${"/formulas"}/${encodeURIComponent(resolvedName)}`,
 			{
 				method: "PUT",
@@ -200,7 +200,7 @@ export const deleteFormula = async (
 	try {
 		const resolvedName = resolveFormulaName(id, name);
 
-		const response = await fetch(
+		const response = await fetchWithTimeout(
 			`${API_URL}${"/formulas"}/${encodeURIComponent(resolvedName)}`,
 			{
 				method: "DELETE",

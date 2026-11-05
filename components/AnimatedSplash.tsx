@@ -89,14 +89,14 @@ interface AnimatedSplashProps {
 
 export function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
 	const overlayOpacity = useSharedValue(1);
-	const imageScale = useSharedValue(1);
+	const imageScale = useSharedValue(0.68);
 
 	useEffect(() => {
 		// Latido sutil mientras caen los granos, seguido del zoom-out final.
 		// El latido dura 1700ms = ZOOM_OUT_AT_MS, así el zoom arranca a la vez
 		// que el fade del overlay.
 		imageScale.value = withSequence(
-			withTiming(1.03, { duration: 850, easing: Easing.inOut(Easing.sin) }),
+			withTiming(1.03, { duration: 850, easing: Easing.out(Easing.cubic) }),
 			withTiming(1, { duration: 850, easing: Easing.inOut(Easing.sin) }),
 			withTiming(1.15, { duration: ZOOM_OUT_MS, easing: Easing.out(Easing.cubic) }),
 		);

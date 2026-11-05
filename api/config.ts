@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 // ponytail: API URL desde app.json extra.apiUrl (Constants), fallback hardcodeado
 export const API_URL =
 	(Constants.expoConfig?.extra?.apiUrl as string | undefined) ||
-	'https://api-rubber-hono.onrender.com';
+	'https://api-rubber-hono.efe13dev.workers.dev';
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
